@@ -1,0 +1,73 @@
+[hidden] { display: none !important; }
+
+body{
+    font-family: urbanist;
+    background-image: url(../assets/images/fundo.png);
+    background-size: 100% 100%;
+    min-height: 100vh;
+    width: 100%;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-position: center;
+
+    color: white;
+}
+
+div{
+    background-color: rgba(2, 2, 2, 0.747);
+}
+
+header{
+    background-color: rgba(2, 2, 2, 0.747);
+}
+
+header > h1{
+    text-transform: uppercase;
+}
+
+header > button{
+    background-color: red;
+}
+
+header>button:hover{
+    background-color: rgb(168, 0, 0);
+}
+
+h2#usuario{
+    text-transform: uppercase;
+}
+
+template > button{
+    background-color: rgba(0, 0, 0, 0);
+}
+
+td{
+    padding: 0px;
+}
+
+dialog{
+    background-color: rgba(2, 2, 2, 0.747);
+    color: white;
+
+    border: 0px;
+    border-radius: 0px;
+
+    backdrop-filter: blur(5px);
+    -webkit-filter-blur:(5px);
+}
+
+select, ::picker(select){
+    appearance: base-select;
+}
+
+option{
+    border: 4px;
+    padding: 12px 20px;
+    background-color: rgba(201, 201, 201, 0.836);
+    transition: background 0.2s ease;
+}
+
+option:hover, option:focus{
+    background-color: rgba(0, 0, 0, 0);
+    cursor: pointer;
+}

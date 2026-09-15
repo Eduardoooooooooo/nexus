@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NEXUS | Painel</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="/styles/painel.css">
+  <script src="/main.js" defer></script>
+  <link
+    rel="stylesheet"
+    type="text/css"
+    href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+</head>
+<body class="m-0">
+  <main id="app">
+    <!-- PAINEL ADMINISTRATIVO -->
+    <section id="admin-screen" hidden class="mx-auto grid w-full max-w-[1600px] gap-4 px-5 py-8 sm:px-8 sm:py-12 lg:px-12">  
+      <header class="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 rounded-2xl p-6 sm:p-8 lg:mb-6">
+        <h1 class="font-bold text-[24px] text-[#ffffff]">Painel Administrativo NEXUS</h1>
+        <button class="flex items-center justify-center gap-2 rounded-full px-3 py-3" type="button" data-logout >
+          <i class="ph ph-sign-out"></i>
+        </button>
+      </header>
+      <div class="rounded-2xl grid grid-cols-1 items-center justify-items-start gap-6 pl-5 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <h2 id="usuario" font->Gerenciamento de Usuários</h2>
+        <button id="add-user" type="button" class="rounded-xl px-5 py-3">+ Adicionar Usuário</button>
+      </div>
+      <div class="min-w-0 overflow-x-auto rounded-2xl bg-black p-4 sm:p-6">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="text-white border-b border-gray-700">
+              <th>Usuário</th>
+              <th>Senha</th>
+              <th>Plano</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-300 border-b border-gray-800" id="users-body">
+          </tbody>
+        </table>
+        <p id="empty-users" hidden class="p-6">Nenhum usuário cadastrado</p>
+      </div>  
+    </section>
+
+    <!-- ÁREA DO USUÁRIO -->
+    <section id="user-screen" hidden class="flex min-h-dvh flex-col md:h-dvh md:flex-row">
+      <aside class="flex shrink-0 flex-col gap-3 p-5 md:w-64">
+        <h1>NEXUS</h1>
+        <div class="mb-5"><p id="welcome" class="my-3">Bem-vindo, User</p><span id="profile-plan" class="rounded-lg px-3 py-1">Premium</span></div>
+        <nav class="flex flex-col gap-2" aria-label="Entretenimento">
+          <button type="button" data-tab="movies" class="rounded-xl p-3">📺 Filmes e Séries</button>
+          <button type="button" data-tab="mangas" class="rounded-xl p-3">📖 Mangás (Em breve)</button>
+          <button type="button" data-tab="music" class="rounded-xl p-3">🎵 Músicas</button>
+        </nav>
+        <button type="button" data-logout class="mt-auto rounded-xl p-3">🚪 Sair</button>
+      </aside>
+      <div class="min-h-0 min-w-0 flex-1 md:overflow-y-auto">
+        <!-- FILMES: os 20 cards são HTML estático. -->
+        <section id="movies-view" data-view="movies" class="p-6">
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-4"><h2>Destaques</h2><input aria-label="Buscar filmes (demonstrativo)" placeholder="🔍 Buscar filmes, séries, atores..." class="w-full rounded-full border px-5 py-3 sm:w-80"></div>
+          <div class="flex flex-wrap gap-2" aria-label="Categorias demonstrativas">
+            <button type="button" class="rounded-full px-5 py-2">Tudo</button>
+            <button type="button" class="rounded-full px-5 py-2">Ação</button>
+            <button type="button" class="rounded-full px-5 py-2">Sci-Fi</button>
+            <button type="button" class="rounded-full px-5 py-2">Comédia</button>
+            <button type="button" class="rounded-full px-5 py-2">Terror</button>
+            <button type="button" class="rounded-full px-5 py-2">Animação</button>
+          </div>
+          <div class="mt-6 grid grid-cols-2 gap-5 lg:grid-cols-4 xl:grid-cols-5">
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 1</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 2</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 3</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 4</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 5</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 6</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 7</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 8</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 9</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 10</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 11</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 12</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 13</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 14</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 15</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 16</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 17</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 18</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 19</h3></article>
+          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 20</h3></article>
+          </div>
+        </section>
+        <!-- MANGÁS -->
+        <section id="mangas-view" data-view="mangas" hidden class="p-12"><h2 class="mb-6">📖 Mangás Hub</h2><p>Catálogo em sincronização...</p></section>
+        <!-- MÚSICAS: as 12 faixas são HTML estático. -->
+        <section id="music-view" data-view="music" hidden class="flex flex-col gap-5 p-6 md:h-full">
+          <div class="min-h-0 flex-1 space-y-3 md:overflow-y-auto">
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <audio id="vmz" src="../assets/VMZ - Sonhos Irreais (Animes) Feat. HanamiIruka - VMZ (youtube).mp3"></audio>  
+            <span class="w-5">1</span>
+            <button onclick="tocarSom()" type="button" data-track="1" aria-label="Reproduzir Epic Soundtrack 1" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 1</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">2</span><button type="button" data-track="2" aria-label="Reproduzir Epic Soundtrack 2" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 2</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">3</span><button type="button" data-track="3" aria-label="Reproduzir Epic Soundtrack 3" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 3</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">4</span><button type="button" data-track="4" aria-label="Reproduzir Epic Soundtrack 4" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 4</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">5</span><button type="button" data-track="5" aria-label="Reproduzir Epic Soundtrack 5" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 5</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">6</span><button type="button" data-track="6" aria-label="Reproduzir Epic Soundtrack 6" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 6</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">7</span><button type="button" data-track="7" aria-label="Reproduzir Epic Soundtrack 7" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 7</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">8</span><button type="button" data-track="8" aria-label="Reproduzir Epic Soundtrack 8" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 8</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">9</span><button type="button" data-track="9" aria-label="Reproduzir Epic Soundtrack 9" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 9</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">10</span><button type="button" data-track="10" aria-label="Reproduzir Epic Soundtrack 10" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 10</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">11</span><button type="button" data-track="11" aria-label="Reproduzir Epic Soundtrack 11" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 11</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
+            <span class="w-5">12</span><button type="button" data-track="12" aria-label="Reproduzir Epic Soundtrack 12" class="rounded-lg px-3 py-2">▶</button>
+            <div class="flex-1"><p>Epic Soundtrack 12</p><p>Composer Name</p></div><span>3:45</span>
+          </div>
+          </div>
+          <div class="grid shrink-0 items-center gap-5 rounded-2xl border p-5 xl:grid-cols-3">
+            <div class="flex items-center gap-4"><div class="h-16 w-16 shrink-0 rounded-xl"></div><div><p id="song-title">Nenhuma música tocando</p><p id="song-artist">-</p></div></div>
+            <div><div class="mb-3 flex justify-center gap-4"><button type="button" aria-label="Anterior (demonstrativo)" class="rounded-full px-4 py-2" id="voltar">⏮</button><button id="player-toggle" type="button" aria-label="Reproduzir" class="rounded-full px-5 py-2">▶</button><button type="button" aria-label="Próxima (demonstrativo)" class="rounded-full px-4 py-2">⏭</button></div><progress id="player-progress" max="1" value="0" aria-label="Progresso simulado" class="h-2 w-full"></progress></div>
+            <label class="flex justify-center gap-3">🔊<input type="range" value="50" aria-label="Volume (demonstrativo)" class="w-28"></label>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <!-- FORMULÁRIO DE USUÁRIO -->
+  <dialog id="user-dialog" aria-labelledby="dialog-title" class="m-auto w-[min(400px,calc(100%-32px))] rounded-2xl border p-7">
+    <form id="user-form" class="space-y-4">
+      <h2 id="dialog-title" class="text-[18px]">Criar Novo Usuário</h2>
+      <div><label for="edit-user" class="mb-2 block">Usuário</label><input id="edit-user" name="username" placeholder="Usuário" required class="w-full rounded-xl border p-3"></div>
+      <div><label for="edit-password" class="mb-2 block">Senha</label><input id="edit-password" name="password" required class="w-full rounded-xl border p-3"></div>
+      <div><label for="edit-plan" class="mb-2 block">Plano</label><select id="edit-plan" name="plan" class="w-full rounded-xl border p-3"><option>Basic</option><option>Premium</option></select></div>
+      <div><label for="edit-status" class="mb-2 block">Status</label><select id="edit-status" name="status" class="w-full rounded-xl border p-3"><option>Ativo</option><option>Inativo</option></select></div>
+      <p id="user-error" role="alert" class="min-h-5"></p>
+      <div class="flex gap-3"><button type="submit" class="rounded-xl px-5 py-3">Salvar</button><button id="cancel-user" type="button" class="rounded-xl px-5 py-3">Cancelar</button></div>
+    </form>
+  </dialog>
+
+  <!-- MODELOS: o JavaScript apenas clona e preenche estes elementos. -->
+  <template id="user-row-template">
+    <tr class="border-t">
+      <td data-field="username"></td><td data-field="password"></td>
+      <td><span data-field="plan" class="rounded-lg px-3 py-1"></span></td>
+      <td data-field="status"></td>
+      <td><div class="flex gap-2"><button type="button" data-action="edit" class="rounded-lg px-3 py-2">Editar</button><button type="button" data-action="delete" class="rounded-lg px-3 p2-2">Remover</button></div></td>
+    </tr>
+  </template>
+  <template id="toast-template"><div class="rounded-xl px-6 py-4 shadow-xl"></div></template>
+  <div id="notifications" role="status" aria-live="polite" class="fixed bottom-8 left-1/2 z-50 grid w-max max-w-[90vw] -translate-x-1/2 gap-3"></div>
+  <noscript>Ative o JavaScript no navegador para entrar no NEXUS.</noscript>
+</body>
+</html>
