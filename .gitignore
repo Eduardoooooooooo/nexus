@@ -1,6 +1,4 @@
-SQLITE.md
-.env
-.DS_Store
-.log
-.sqlite
 data/
+.env
+assets/
+.vscode/

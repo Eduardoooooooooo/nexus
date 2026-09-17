@@ -1,186 +1,679 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NEXUS | Painel</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <link rel="stylesheet" href="/styles/painel.css">
-  <script src="/main.js" defer></script>
-  <link
-    rel="stylesheet"
-    type="text/css"
-    href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
-</head>
-<body class="m-0">
-  <main id="app">
-    <!-- PAINEL ADMINISTRATIVO -->
-    <section id="admin-screen" hidden class="mx-auto grid w-full max-w-[1600px] gap-4 px-5 py-8 sm:px-8 sm:py-12 lg:px-12">  
-      <header class="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-6 rounded-2xl p-6 sm:p-8 lg:mb-6">
-        <h1 class="font-bold text-[24px] text-[#ffffff]">Painel Administrativo NEXUS</h1>
-        <button class="flex items-center justify-center gap-2 rounded-full px-3 py-3" type="button" data-logout >
-          <i class="ph ph-sign-out"></i>
-        </button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <title>NEXUS | Entretenimento</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="/styles/painel.css" />
+    <script src="/main.js" defer></script>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css"
+    />
+  </head>
+  <body class="m-0" data-page="user">
+    <main id="app" class="user-shell">
+      <header class="user-topbar">
+        <div class="user-brand">
+          <span class="user-logo" aria-hidden="true">N</span>
+          <div>
+            <p>NEXUS</p>
+            <span>Seu universo de entretenimento</span>
+          </div>
+        </div>
+        <div class="user-top-account">
+          <button id="profile-button" type="button" class="user-top-profile" aria-label="Abrir perfil e configurações">
+            <span class="user-top-avatar" aria-hidden="true"><i class="ph ph-user"></i></span>
+            <span class="user-top-copy">
+              <strong id="user-top-name">Minha conta</strong>
+              <span id="user-top-plan">Plano NEXUS</span>
+            </span>
+            <i class="ph ph-caret-down user-profile-caret" aria-hidden="true"></i>
+          </button>
+          <button class="user-logout" type="button" data-logout aria-label="Sair" title="Sair">
+            <i class="ph ph-sign-out"></i>
+          </button>
+        </div>
       </header>
-      <div class="rounded-2xl grid grid-cols-1 items-center justify-items-start gap-6 pl-5 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <h2 id="usuario" font->Gerenciamento de Usuários</h2>
-        <button id="add-user" type="button" class="rounded-xl px-5 py-3">+ Adicionar Usuário</button>
+      <!-- Área do Usuário -->
+      <section id="user-screen" class="user-layout">
+        <aside class="user-sidebar nexus-scroll">
+          <label for="global-search" class="sr-only">Buscar no NEXUS</label>
+          <div class="relative">
+            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2"></i
+            ><input
+              id="global-search"
+              type="search"
+              placeholder="Buscar músicas, filmes e mais"
+              class="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-10 pr-3"
+            />
+          </div>
+          <p class="user-nav-label">Explorar</p>
+          <nav class="flex flex-col gap-2" aria-label="Entretenimento">
+            <button type="button" data-tab="movies" class="rounded-xl p-3">
+              <i class="ph ph-film-strip"></i><span>Filmes e séries</span>
+            </button>
+            <button type="button" data-tab="mangas" class="rounded-xl p-3">
+              <i class="ph ph-book-open-text"></i><span>Mangás</span><small>Em breve</small>
+            </button>
+            <button type="button" data-tab="music" class="rounded-xl p-3">
+              <i class="ph ph-music-notes"></i><span>Músicas</span>
+            </button>
+          </nav>
+          <div class="my-2 border-t border-white/10"></div>
+          <section aria-labelledby="library-title" class="min-h-0">
+            <div class="mb-2 flex items-center justify-between">
+              <h2 id="library-title" class="text-sm font-bold uppercase tracking-wider">
+                Sua biblioteca
+              </h2>
+              <button class="ab"
+                id="new-playlist"
+                type="button"
+                class="rounded-lg p-2"
+                aria-label="Criar playlist"
+                title="Criar playlist">
+                <i class="ph ph-plus" aria-hidden="true"></i>
+              </button>
+            </div>
+            <nav class="grid gap-1" aria-label="Biblioteca">
+              <button
+                type="button"
+                data-library="all"
+                class="library-button rounded-lg px-3 py-2 text-left"
+              >
+                <i class="ph ph-squares-four"></i><span>Todas</span>
+              </button>
+              <button
+                type="button"
+                data-library="liked"
+                class="library-button rounded-lg px-3 py-2 text-left"
+              >
+                <i class="ph ph-heart"></i><span>Curtidas</span>
+              </button>
+              <button
+                type="button"
+                data-library="pinned"
+                class="library-button rounded-lg px-3 py-2 text-left"
+              >
+                <i class="ph ph-push-pin"></i><span>Fixadas</span>
+              </button>
+              <button
+                type="button"
+                data-library="recent"
+                class="library-button rounded-lg px-3 py-2 text-left"
+              >
+                <i class="ph ph-clock-counter-clockwise"></i><span>Recentes</span>
+              </button>
+              <button
+                type="button"
+                data-library="releases"
+                class="library-button rounded-lg px-3 py-2 text-left"
+              >
+                <i class="ph ph-sparkle"></i><span>Lançamentos</span>
+              </button>
+            </nav>
+            <p class="mt-4 text-xs uppercase tracking-wider opacity-60">Playlists</p>
+            <div
+              id="playlist-list"
+              class="nexus-scroll mt-2 grid max-h-44 gap-1 overflow-y-auto"
+            ></div>
+            <p id="empty-playlists" class="px-3 py-2 text-xs opacity-60">Nenhuma playlist criada</p>
+          </section>
+        </aside>
+        <div class="user-content nexus-scroll">
+          <!-- Filmes. -->
+          <section
+            id="movies-view"
+            data-view="movies"
+            class="nexus-scroll h-full overflow-y-auto p-6"
+          >
+            <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p class="user-eyebrow">CATÁLOGO</p>
+                <h2>Filmes e séries</h2>
+                <p class="user-view-subtitle">Escolha algo para assistir e aproveite.</p>
+              </div>
+              <label class="movie-search-field">
+                <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                <span class="sr-only">Buscar filmes e séries</span>
+                <input
+                  id="movie-search"
+                  type="search"
+                  placeholder="Buscar filmes, séries..."
+                  class="w-full rounded-full border py-3 pl-11 pr-5 sm:w-80"
+                />
+              </label>
+            </div>
+            <div class="flex flex-wrap gap-2" aria-label="Categorias demonstrativas">
+              <button type="button" class="rounded-full px-5 py-2">Tudo</button>
+              <button type="button" class="rounded-full px-5 py-2">Ação</button>
+              <button type="button" class="rounded-full px-5 py-2">Sci-Fi</button>
+              <button type="button" class="rounded-full px-5 py-2">Comédia</button>
+              <button type="button" class="rounded-full px-5 py-2">Terror</button>
+              <button type="button" class="rounded-full px-5 py-2">Animação</button>
+            </div>
+            <div class="movie-grid mt-6 grid grid-cols-2 gap-5 lg:grid-cols-4 xl:grid-cols-5">
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Video_1</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 2</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 3</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 4</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 5</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 6</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 7</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 8</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 9</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 10</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 11</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 12</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 13</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 14</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 15</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 16</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 17</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 18</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 19</h3>
+              </article>
+              <article data-movie-card class="overflow-hidden rounded-2xl">
+                <div class="grid h-48 place-items-center"><i class="ph ph-film-slate" aria-hidden="true"></i></div>
+                <h3 class="p-3">Movie Title 20</h3>
+              </article>
+            </div>
+            <p id="movies-empty" hidden class="py-12 text-center opacity-60">
+              Nenhum filme ou série encontrado.
+            </p>
+          </section>
+          <!-- Pesquisa Global -->
+          <section
+            id="search-view"
+            data-view="search"
+            hidden
+            class="nexus-scroll h-full overflow-y-auto p-6"
+          >
+            <h2 class="mb-5 text-2xl font-bold">Resultados da pesquisa</h2>
+            <div id="search-results" class="grid gap-3"></div>
+            <p id="search-empty" hidden class="py-12 text-center opacity-60">
+              Nenhum resultado encontrado.
+            </p>
+          </section>
+          <!-- Mangás -->
+          <section
+            id="mangas-view"
+            data-view="mangas"
+            hidden
+            class="nexus-scroll h-full overflow-y-auto p-12"
+          >
+            <span class="manga-hub-icon" aria-hidden="true"><i class="ph ph-book-open-text"></i></span>
+            <h2 class="mb-6">Mangás Hub</h2>
+            <p>Catálogo em sincronização...</p>
+          </section>
+          <!-- Músicas -->
+          <section
+            id="music-view"
+            data-view="music"
+            hidden
+            class="flex flex-col gap-4 p-6 md:h-full"
+          >
+            <div class="shrink-0">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 id="music-collection-title" class="text-2xl font-bold">Todas as músicas</h2>
+                  <p id="music-collection-count" class="text-sm opacity-60"></p>
+                </div>
+                <input
+                  id="music-search"
+                  type="search"
+                  placeholder="Buscar músicas, artistas e álbuns no Spotify"
+                  aria-label="Buscar músicas"
+                  class="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 sm:w-72"
+                />
+              </div>
+              <div
+                class="nexus-scroll mt-4 flex gap-2 overflow-x-auto pb-2"
+                aria-label="Gostos musicais">
+                <button type="button" data-taste="rap" class="taste-chip">Rap</button
+                ><button type="button" data-taste="trap" class="taste-chip">Trap</button
+                ><button type="button" data-taste="anime" class="taste-chip">Anime</button
+                ><button type="button" data-taste="pop" class="taste-chip">Pop</button
+                ><button type="button" data-taste="hip-hop" class="taste-chip">Hip-hop</button>
+              </div>
+            </div>
+            <section id="spotify-search-results" class="online-catalog search-mode" aria-labelledby="spotify-search-title" hidden>
+              <div class="online-catalog-heading">
+                <div>
+                  <p class="user-eyebrow">BUSCA SPOTIFY</p>
+                  <h3 id="spotify-search-title">Resultados da pesquisa</h3>
+                </div>
+                <span class="catalog-source"><i class="ph ph-spotify-logo" aria-hidden="true"></i> Spotify</span>
+              </div>
+              <div id="spotify-search-list" class="online-tracks" aria-live="polite"></div>
+              <p id="spotify-search-status" class="catalog-status" role="status"></p>
+            </section>
+            <div class="local-library-heading">
+              <div><p class="user-eyebrow">BIBLIOTECA NEXUS</p><h3>Disponíveis neste computador</h3></div>
+              <span>Reproduza ou baixe os arquivos locais</span>
+            </div>
+            <p id="metadata-status" role="status" class="shrink-0 text-sm text-zinc-400"></p>
+            <audio id="vmz" preload="none"></audio>
+            <div data-music-list class="nexus-scroll min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
+              <article data-music-item data-music-row="1" class="flex items-center gap-4 rounded-xl px-5 py-3">
+                <span class="track-number">1</span>
+                <button type="button" data-track="1" data-genres="rap,anime,pop" data-release="2024-01-01"
+                  data-query-title="Sonhos Irreais" data-query-artist="VMZ" data-video="/assets/videos/VMZ%20-%20Sonhos%20Irreais%20(Animes)%20Feat.%20%40HanamiIruka%20%5BgfFqxuD1d5Q%5D.webm"
+                  data-src="/assets/songs/VMZ%20-%20Sonhos%20Irreais%20(Animes)%20Feat.%20HanamiIruka%20-%20VMZ%20(youtube).mp3" data-title="Sonhos Irreais" data-artist="VMZ feat. HanamiIruka"
+                  aria-label="Reproduzir Sonhos Irreais" class="cover-play">
+                  <img data-music-cover hidden alt="" width="52" height="52" loading="lazy" referrerpolicy="no-referrer" />
+                  <span data-cover-placeholder class="cover-placeholder"><i class="ph ph-music-note"></i></span>
+                  <span class="cover-play-overlay"><i data-play-icon class="ph ph-play"></i></span>
+                </button>
+                <div class="min-w-0 flex-1">
+                  <p data-music-title>Sonhos Irreais</p>
+                  <p data-music-artist>VMZ feat. HanamiIruka</p>
+                  <div data-music-links class="mt-1 flex gap-3 text-xs text-zinc-400">
+                    <a data-provider="spotify" hidden target="_blank" rel="noopener noreferrer" class="hover:underline"><i class="ph ph-spotify-logo" aria-hidden="true"></i> Spotify</a>
+                  </div>
+                </div>
+                <span data-duration="1" class="track-duration">--:--</span>
+                <div class="music-actions flex items-center gap-1">
+                  <button type="button" data-like class="icon-action" aria-label="Curtir música"><i class="ph ph-heart"></i></button>
+                  <button type="button" data-pin class="icon-action" aria-label="Fixar música"><i class="ph ph-push-pin"></i></button>
+                  <details class="track-more">
+                    <summary aria-label="Mais opções" title="Mais opções"><i class="ph ph-dots-three"></i></summary>
+                    <div class="track-menu">
+                      <label class="playlist-menu-option">
+                        <i class="ph ph-playlist" aria-hidden="true"></i>
+                        <span>Adicionar à playlist</span>
+                        <select data-add-playlist aria-label="Adicionar música a uma playlist" class="playlist-select">
+                          <option value="">Escolher playlist…</option>
+                        </select>
+                      </label>
+                      <a data-provider="lastfm" hidden target="_blank" rel="noopener noreferrer"><i class="ph ph-arrow-square-out"></i> Abrir no Last.fm</a>
+                      <a href="/assets/songs/VMZ%20-%20Sonhos%20Irreais%20(Animes)%20Feat.%20HanamiIruka%20-%20VMZ%20(youtube).mp3?download=1" download><i class="ph ph-download-simple"></i> Baixar arquivo</a>
+                    </div>
+                  </details>
+                </div>
+              </article>
+              <article data-music-item data-music-row="2" class="flex items-center gap-4 rounded-xl px-5 py-3">
+                <span class="track-number">2</span>
+                <button type="button" data-track="2" data-genres="rap,anime" data-release="2024-02-01"
+                  data-query-title="Última Chance" data-query-artist="VMZ"
+                  data-src="/assets/songs/VMZ%20-%20%C3%9Altima%20Chance%20%F0%9F%92%A1%20(OneShot)%20_%20Prod.%20Jow%20Santh.mp3" data-title="Última Chance" data-artist="VMZ · Prod. Jow Santh"
+                  aria-label="Reproduzir Última Chance" class="cover-play">
+                  <img data-music-cover hidden alt="" width="52" height="52" loading="lazy" referrerpolicy="no-referrer" />
+                  <span data-cover-placeholder class="cover-placeholder"><i class="ph ph-music-note"></i></span>
+                  <span class="cover-play-overlay"><i data-play-icon class="ph ph-play"></i></span>
+                </button>
+                <div class="min-w-0 flex-1">
+                  <p data-music-title>Última Chance</p>
+                  <p data-music-artist>VMZ · Prod. Jow Santh</p>
+                  <div data-music-links class="mt-1 flex gap-3 text-xs text-zinc-400">
+                    <a data-provider="spotify" hidden target="_blank" rel="noopener noreferrer" class="hover:underline"><i class="ph ph-spotify-logo" aria-hidden="true"></i> Spotify</a>
+                  </div>
+                </div>
+                <span data-duration="2" class="track-duration">--:--</span>
+                <div class="music-actions flex items-center gap-1">
+                  <button type="button" data-like class="icon-action" aria-label="Curtir música"><i class="ph ph-heart"></i></button>
+                  <button type="button" data-pin class="icon-action" aria-label="Fixar música"><i class="ph ph-push-pin"></i></button>
+                  <details class="track-more">
+                    <summary aria-label="Mais opções" title="Mais opções"><i class="ph ph-dots-three"></i></summary>
+                    <div class="track-menu">
+                      <label class="playlist-menu-option">
+                        <i class="ph ph-playlist" aria-hidden="true"></i>
+                        <span>Adicionar à playlist</span>
+                        <select data-add-playlist aria-label="Adicionar música a uma playlist" class="playlist-select">
+                          <option value="">Escolher playlist…</option>
+                        </select>
+                      </label>
+                      <a data-provider="lastfm" hidden target="_blank" rel="noopener noreferrer"><i class="ph ph-arrow-square-out"></i> Abrir no Last.fm</a>
+                      <a href="/assets/songs/VMZ%20-%20%C3%9Altima%20Chance%20%F0%9F%92%A1%20(OneShot)%20_%20Prod.%20Jow%20Santh.mp3?download=1" download><i class="ph ph-download-simple"></i> Baixar arquivo</a>
+                    </div>
+                  </details>
+                </div>
+              </article>
+              <article data-music-item data-music-row="3" class="flex items-center gap-4 rounded-xl px-5 py-3">
+                <span class="track-number">3</span>
+                <button type="button" data-track="3" data-genres="rap,trap,hip-hop" data-release="2025-01-01"
+                  data-query-title="PARTY" data-query-artist="ALEE"
+                  data-src="/assets/songs/ALEE%20-%20PARTY%20Ft.%20KLISMAN%20%26%20ANEZZI%20%5B9LOwIpjqN7Y%5D.mp3" data-title="PARTY" data-artist="ALEE, KLISMAN, ANEZZI"
+                  aria-label="Reproduzir PARTY" class="cover-play">
+                  <img data-music-cover hidden alt="" width="52" height="52" loading="lazy" referrerpolicy="no-referrer" />
+                  <span data-cover-placeholder class="cover-placeholder"><i class="ph ph-music-note"></i></span>
+                  <span class="cover-play-overlay"><i data-play-icon class="ph ph-play"></i></span>
+                </button>
+                <div class="min-w-0 flex-1">
+                  <p data-music-title>PARTY</p>
+                  <p data-music-artist>ALEE, KLISMAN, ANEZZI</p>
+                  <div data-music-links class="mt-1 flex gap-3 text-xs text-zinc-400">
+                    <a data-provider="spotify" hidden target="_blank" rel="noopener noreferrer" class="hover:underline"><i class="ph ph-spotify-logo" aria-hidden="true"></i> Spotify</a>
+                  </div>
+                </div>
+                <span data-duration="3" class="track-duration">--:--</span>
+                <div class="music-actions flex items-center gap-1">
+                  <button type="button" data-like class="icon-action" aria-label="Curtir música"><i class="ph ph-heart"></i></button>
+                  <button type="button" data-pin class="icon-action" aria-label="Fixar música"><i class="ph ph-push-pin"></i></button>
+                  <details class="track-more">
+                    <summary aria-label="Mais opções" title="Mais opções"><i class="ph ph-dots-three"></i></summary>
+                    <div class="track-menu">
+                      <label class="playlist-menu-option">
+                        <i class="ph ph-playlist" aria-hidden="true"></i>
+                        <span>Adicionar à playlist</span>
+                        <select data-add-playlist aria-label="Adicionar música a uma playlist" class="playlist-select">
+                          <option value="">Escolher playlist…</option>
+                        </select>
+                      </label>
+                      <a data-provider="lastfm" hidden target="_blank" rel="noopener noreferrer"><i class="ph ph-arrow-square-out"></i> Abrir no Last.fm</a>
+                      <a href="/assets/songs/ALEE%20-%20PARTY%20Ft.%20KLISMAN%20%26%20ANEZZI%20%5B9LOwIpjqN7Y%5D.mp3?download=1" download><i class="ph ph-download-simple"></i> Baixar arquivo</a>
+                    </div>
+                  </details>
+                </div>
+              </article>
+              <article data-music-item data-music-row="4" class="flex items-center gap-4 rounded-xl px-5 py-3">
+                <span class="track-number">4</span>
+                <button type="button" data-track="4" data-genres="latin,urbano,dembow" data-release="2024-01-01"
+                  data-query-title="HAY LUPITA" data-query-artist="LOMIIEL"
+                  data-src="/assets/songs/LOMIIEL%20-%20HAY%20LUPITA%20(%20VIDEO%20OFICIAL%204K%20)%20%5B-82WWzgQgaw%5D.mp3" data-title="HAY LUPITA" data-artist="LOMIIEL"
+                  aria-label="Reproduzir HAY LUPITA" class="cover-play">
+                  <img data-music-cover hidden alt="" width="52" height="52" loading="lazy" referrerpolicy="no-referrer" />
+                  <span data-cover-placeholder class="cover-placeholder"><i class="ph ph-music-note"></i></span>
+                  <span class="cover-play-overlay"><i data-play-icon class="ph ph-play"></i></span>
+                </button>
+                <div class="min-w-0 flex-1">
+                  <p data-music-title>HAY LUPITA</p>
+                  <p data-music-artist>LOMIIEL</p>
+                  <div data-music-links class="mt-1 flex gap-3 text-xs text-zinc-400">
+                    <a data-provider="spotify" hidden target="_blank" rel="noopener noreferrer" class="hover:underline"><i class="ph ph-spotify-logo" aria-hidden="true"></i> Spotify</a>
+                  </div>
+                </div>
+                <span data-duration="4" class="track-duration">--:--</span>
+                <div class="music-actions flex items-center gap-1">
+                  <button type="button" data-like class="icon-action" aria-label="Curtir música"><i class="ph ph-heart"></i></button>
+                  <button type="button" data-pin class="icon-action" aria-label="Fixar música"><i class="ph ph-push-pin"></i></button>
+                  <details class="track-more">
+                    <summary aria-label="Mais opções" title="Mais opções"><i class="ph ph-dots-three"></i></summary>
+                    <div class="track-menu">
+                      <label class="playlist-menu-option">
+                        <i class="ph ph-playlist" aria-hidden="true"></i>
+                        <span>Adicionar à playlist</span>
+                        <select data-add-playlist aria-label="Adicionar música a uma playlist" class="playlist-select">
+                          <option value="">Escolher playlist…</option>
+                        </select>
+                      </label>
+                      <a data-provider="lastfm" hidden target="_blank" rel="noopener noreferrer"><i class="ph ph-arrow-square-out"></i> Abrir no Last.fm</a>
+                      <a href="/assets/songs/LOMIIEL%20-%20HAY%20LUPITA%20(%20VIDEO%20OFICIAL%204K%20)%20%5B-82WWzgQgaw%5D.mp3?download=1" download><i class="ph ph-download-simple"></i> Baixar arquivo</a>
+                    </div>
+                  </details>
+                </div>
+              </article>
+              <p id="music-empty" hidden class="py-12 text-center opacity-60">Nenhuma música encontrada nesta coleção.</p>
+            </div>
+            <div
+              class="user-player grid shrink-0 items-center rounded-2xl border xl:grid-cols-3"
+            >
+              <div class="flex items-center gap-4">
+                <div class="player-cover-frame shrink-0 rounded-xl bg-zinc-800">
+                  <img
+                    id="song-cover"
+                    hidden
+                    alt=""
+                    width="64"
+                    height="64"
+                    referrerpolicy="no-referrer"
+                    class="h-full w-full rounded-xl object-cover"
+                  />
+                  <span id="song-cover-placeholder" aria-hidden="true"><i class="ph ph-music-note"></i></span>
+                </div>
+                <div>
+                  <p id="song-title">Nenhuma música tocando</p>
+                  <p id="song-artist">-</p>
+                  <div id="song-sources" class="mt-1 flex items-center gap-2 text-xs text-zinc-400">
+                    <a data-provider="spotify" hidden target="_blank" rel="noopener noreferrer" class="hover:underline"><i class="ph ph-spotify-logo" aria-hidden="true"></i> Spotify</a>
+                    <details class="track-more player-more">
+                      <summary aria-label="Mais opções da música" title="Mais opções"><i class="ph ph-dots-three"></i></summary>
+                      <div class="track-menu">
+                        <a data-provider="lastfm" hidden target="_blank" rel="noopener noreferrer"><i class="ph ph-arrow-square-out"></i> Abrir no Last.fm</a>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="player-controls">
+                  <button id="player-shuffle" type="button" aria-label="Ativar reprodução aleatória" title="Aleatório"><i class="ph ph-shuffle"></i></button>
+                  <button type="button" aria-label="Música anterior" id="voltar"><i class="ph ph-skip-back"></i></button>
+                  <button id="player-toggle" type="button" aria-label="Reproduzir"><i class="ph ph-play"></i></button>
+                  <button type="button" id="player-next" aria-label="Próxima música"><i class="ph ph-skip-forward"></i></button>
+                  <button id="player-repeat" type="button" aria-label="Ativar repetição" title="Repetir"><i class="ph ph-repeat"></i></button>
+                  <button id="player-fullscreen" type="button" aria-label="Abrir videoclipe em tela cheia" title="Videoclipe em tela cheia"><i class="ph ph-corners-out" aria-hidden="true"></i></button>
+                </div>
+                <div class="player-timeline">
+                  <span id="player-current-time">0:00</span>
+                  <input id="player-progress" type="range" min="0" max="1" step="0.001" value="0" disabled aria-label="Posição da música" />
+                  <span id="player-total-time">0:00</span>
+                </div>
+              </div>
+              <label class="flex items-center justify-center gap-3">
+                <button id="player-mute" type="button" aria-label="Mutar" class="rounded-lg p-2">
+                  <i class="ph ph-speaker-high"></i></button>
+                  <input
+                  id="player-volume"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value="50"
+                  aria-label="Volume"
+                  class="w-28"/>
+                </label>
+            </div>
+            <section id="online-catalog" class="online-catalog discover-catalog" aria-labelledby="online-title">
+              <div class="online-catalog-heading">
+                <div>
+                  <p class="user-eyebrow">DESCOBRIR</p>
+                  <h3 id="online-title">Ranking global do Spotify</h3>
+                </div>
+                <span id="online-source" class="catalog-source"><i class="ph ph-spotify-logo" aria-hidden="true"></i> Spotify</span>
+              </div>
+              <div id="online-tracks" class="nexus-scroll online-tracks" aria-live="polite"></div>
+              <p id="online-status" class="catalog-status" role="status">Carregando o ranking global…</p>
+            </section>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <!-- Playlist -->
+    <dialog
+      id="playlist-dialog"
+      class="user-dialog m-auto w-[min(420px,calc(100%-32px))] rounded-2xl border border-white/10 p-7"
+    >
+      <form id="playlist-form">
+        <h2 class="mb-5 text-xl font-bold">Criar playlist</h2>
+        <label for="playlist-name" class="mb-2 block">Nome</label
+        ><input id="playlist-name" maxlength="60" required class="w-full rounded-xl border p-3" />
+        <p id="playlist-error" class="my-3 min-h-5 text-sm" role="alert"></p>
+        <div class="flex gap-3">
+          <button type="submit" class="rounded-xl px-5 py-3">Criar</button
+          ><button id="cancel-playlist" type="button" class="rounded-xl px-5 py-3">Cancelar</button>
+        </div>
+      </form>
+    </dialog>
+    <!-- Perfil & Configurações -->
+    <dialog id="profile-dialog" class="user-dialog user-profile-dialog">
+      <div class="flex items-start justify-between">
+        <div>
+          <h2 class="text-2xl font-bold">Perfil</h2>
+          <p id="profile-name" class="mt-2 text-lg"></p>
+          <p><span id="profile-role"></span> · <span id="profile-plan-detail"></span></p>
+        </div>
+        <button
+          id="close-profile"
+          type="button"
+          class="rounded-lg p-2"
+          aria-label="Fechar configurações"
+        >
+          <i class="ph ph-x" aria-hidden="true"></i>
+        </button>
       </div>
-      <div class="min-w-0 overflow-x-auto rounded-2xl bg-black p-4 sm:p-6">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="text-white border-b border-gray-700">
-              <th>Usuário</th>
-              <th>Senha</th>
-              <th>Plano</th>
-              <th>Status</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody class="text-gray-300 border-b border-gray-800" id="users-body">
-          </tbody>
-        </table>
-        <p id="empty-users" hidden class="p-6">Nenhum usuário cadastrado</p>
-      </div>  
-    </section>
-
-    <!-- ÁREA DO USUÁRIO -->
-    <section id="user-screen" hidden class="flex min-h-dvh flex-col md:h-dvh md:flex-row">
-      <aside class="flex shrink-0 flex-col gap-3 p-5 md:w-64">
-        <h1>NEXUS</h1>
-        <div class="mb-5"><p id="welcome" class="my-3">Bem-vindo, User</p><span id="profile-plan" class="rounded-lg px-3 py-1">Premium</span></div>
-        <nav class="flex flex-col gap-2" aria-label="Entretenimento">
-          <button type="button" data-tab="movies" class="rounded-xl p-3">📺 Filmes e Séries</button>
-          <button type="button" data-tab="mangas" class="rounded-xl p-3">📖 Mangás (Em breve)</button>
-          <button type="button" data-tab="music" class="rounded-xl p-3">🎵 Músicas</button>
-        </nav>
-        <button type="button" data-logout class="mt-auto rounded-xl p-3">🚪 Sair</button>
-      </aside>
-      <div class="min-h-0 min-w-0 flex-1 md:overflow-y-auto">
-        <!-- FILMES: os 20 cards são HTML estático. -->
-        <section id="movies-view" data-view="movies" class="p-6">
-          <div class="mb-5 flex flex-wrap items-center justify-between gap-4"><h2>Destaques</h2><input aria-label="Buscar filmes (demonstrativo)" placeholder="🔍 Buscar filmes, séries, atores..." class="w-full rounded-full border px-5 py-3 sm:w-80"></div>
-          <div class="flex flex-wrap gap-2" aria-label="Categorias demonstrativas">
-            <button type="button" class="rounded-full px-5 py-2">Tudo</button>
-            <button type="button" class="rounded-full px-5 py-2">Ação</button>
-            <button type="button" class="rounded-full px-5 py-2">Sci-Fi</button>
-            <button type="button" class="rounded-full px-5 py-2">Comédia</button>
-            <button type="button" class="rounded-full px-5 py-2">Terror</button>
-            <button type="button" class="rounded-full px-5 py-2">Animação</button>
-          </div>
-          <div class="mt-6 grid grid-cols-2 gap-5 lg:grid-cols-4 xl:grid-cols-5">
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 1</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 2</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 3</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 4</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 5</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 6</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 7</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 8</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 9</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 10</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 11</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 12</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 13</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 14</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 15</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 16</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 17</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 18</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 19</h3></article>
-          <article class="overflow-hidden rounded-2xl"><div class="grid h-48 place-items-center">🎬</div><h3 class="p-3">Movie Title 20</h3></article>
-          </div>
-        </section>
-        <!-- MANGÁS -->
-        <section id="mangas-view" data-view="mangas" hidden class="p-12"><h2 class="mb-6">📖 Mangás Hub</h2><p>Catálogo em sincronização...</p></section>
-        <!-- MÚSICAS: as 12 faixas são HTML estático. -->
-        <section id="music-view" data-view="music" hidden class="flex flex-col gap-5 p-6 md:h-full">
-          <div class="min-h-0 flex-1 space-y-3 md:overflow-y-auto">
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <audio id="vmz" src="../assets/songs/VMZ - Sonhos Irreais (Animes) Feat. HanamiIruka - VMZ (youtube).mp3"></audio>  
-            <span class="w-5">1</span>
-            <button onclick="tocarSom()" type="button" data-track="1" aria-label="Reproduzir Epic Soundtrack 1" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 1</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">2</span><button type="button" data-track="2" aria-label="Reproduzir Epic Soundtrack 2" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 2</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">3</span><button type="button" data-track="3" aria-label="Reproduzir Epic Soundtrack 3" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 3</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">4</span><button type="button" data-track="4" aria-label="Reproduzir Epic Soundtrack 4" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 4</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">5</span><button type="button" data-track="5" aria-label="Reproduzir Epic Soundtrack 5" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 5</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">6</span><button type="button" data-track="6" aria-label="Reproduzir Epic Soundtrack 6" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 6</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">7</span><button type="button" data-track="7" aria-label="Reproduzir Epic Soundtrack 7" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 7</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">8</span><button type="button" data-track="8" aria-label="Reproduzir Epic Soundtrack 8" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 8</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">9</span><button type="button" data-track="9" aria-label="Reproduzir Epic Soundtrack 9" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 9</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">10</span><button type="button" data-track="10" aria-label="Reproduzir Epic Soundtrack 10" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 10</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">11</span><button type="button" data-track="11" aria-label="Reproduzir Epic Soundtrack 11" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 11</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          <div class="flex items-center gap-4 rounded-xl px-5 py-3">
-            <span class="w-5">12</span><button type="button" data-track="12" aria-label="Reproduzir Epic Soundtrack 12" class="rounded-lg px-3 py-2">▶</button>
-            <div class="flex-1"><p>Epic Soundtrack 12</p><p>Composer Name</p></div><span>3:45</span>
-          </div>
-          </div>
-          <div class="grid shrink-0 items-center gap-5 rounded-2xl border p-5 xl:grid-cols-3">
-            <div class="flex items-center gap-4"><div class="h-16 w-16 shrink-0 rounded-xl"></div><div><p id="song-title">Nenhuma música tocando</p><p id="song-artist">-</p></div></div>
-            <div><div class="mb-3 flex justify-center gap-4"><button type="button" aria-label="Anterior (demonstrativo)" class="rounded-full px-4 py-2" id="voltar">⏮</button><button id="player-toggle" type="button" aria-label="Reproduzir" class="rounded-full px-5 py-2">▶</button><button type="button" aria-label="Próxima (demonstrativo)" class="rounded-full px-4 py-2">⏭</button></div><progress id="player-progress" max="1" value="0" aria-label="Progresso simulado" class="h-2 w-full"></progress></div>
-            <label class="flex justify-center gap-3">🔊<input type="range" value="50" aria-label="Volume (demonstrativo)" class="w-28"></label>
-          </div>
-        </section>
+      <div class="my-6 border-t border-white/10"></div>
+      <h3 class="mb-4 font-bold">Configurações</h3>
+      <label class="mb-4 flex items-center justify-between gap-4"
+        ><span>Lista compacta</span><input id="setting-compact" type="checkbox"
+      /></label>
+      <label class="flex items-center justify-between gap-4"
+        ><span>Mostrar links Spotify/Last.fm</span><input id="setting-sources" type="checkbox"
+      /></label>
+    </dialog>
+    <!-- Videoclipe -->
+    <dialog
+      id="video-dialog"
+      aria-labelledby="video-title"
+      class="m-auto w-[95vw] max-w-6xl border-0 bg-black p-0 text-white backdrop:bg-black/90"
+    >
+      <div
+        id="video-stage"
+        class="flex h-[85dvh] flex-col bg-black p-4 [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
+      >
+        <div class="mb-3 flex shrink-0 items-center justify-between gap-4">
+          <h2 id="video-title" class="font-bold">Videoclipe</h2>
+          <button
+            id="video-close"
+            type="button"
+            class="rounded-lg px-4 py-2 hover:bg-zinc-800"
+            aria-label="Fechar videoclipe"
+          >
+            <i class="ph ph-x" aria-hidden="true"></i> Fechar
+          </button>
+        </div>
+        <video
+          id="music-video"
+          controls
+          playsinline
+          preload="none"
+          class="min-h-0 w-full flex-1 object-contain"
+          aria-label="Videoclipe da música"
+        ></video>
+        <p id="video-error" role="status" class="mt-2 shrink-0 text-sm text-zinc-300"></p>
       </div>
-    </section>
-  </main>
+    </dialog>
 
-  <!-- FORMULÁRIO DE USUÁRIO -->
-  <dialog id="user-dialog" aria-labelledby="dialog-title" class="m-auto w-[min(400px,calc(100%-32px))] rounded-2xl border p-7">
-    <form id="user-form" class="space-y-4">
-      <h2 id="dialog-title" class="text-[18px]">Criar Novo Usuário</h2>
-      <div><label for="edit-user" class="mb-2 block">Usuário</label><input id="edit-user" name="username" placeholder="Usuário" required class="w-full rounded-xl border p-3"></div>
-      <div><label for="edit-password" class="mb-2 block">Senha</label><input id="edit-password" name="password" required class="w-full rounded-xl border p-3"></div>
-      <div><label for="edit-plan" class="mb-2 block">Plano</label><select id="edit-plan" name="plan" class="w-full rounded-xl border p-3"><option>Basic</option><option>Premium</option></select></div>
-      <div><label for="edit-status" class="mb-2 block">Status</label><select id="edit-status" name="status" class="w-full rounded-xl border p-3"><option>Ativo</option><option>Inativo</option></select></div>
-      <p id="user-error" role="alert" class="min-h-5"></p>
-      <div class="flex gap-3"><button type="submit" class="rounded-xl px-5 py-3">Salvar</button><button id="cancel-user" type="button" class="rounded-xl px-5 py-3">Cancelar</button></div>
-    </form>
-  </dialog>
-
-  <!-- MODELOS: o JavaScript apenas clona e preenche estes elementos. -->
-  <template id="user-row-template">
-    <tr class="border-t">
-      <td data-field="username"></td><td data-field="password"></td>
-      <td><span data-field="plan" class="rounded-lg px-3 py-1"></span></td>
-      <td data-field="status"></td>
-      <td><div class="flex gap-2"><button type="button" data-action="edit" class="rounded-lg px-3 py-2">Editar</button><button type="button" data-action="delete" class="rounded-lg px-3 p2-2">Remover</button></div></td>
-    </tr>
-  </template>
-  <template id="toast-template"><div class="rounded-xl px-6 py-4 shadow-xl"></div></template>
-  <div id="notifications" role="status" aria-live="polite" class="fixed bottom-8 left-1/2 z-50 grid w-max max-w-[90vw] -translate-x-1/2 gap-3"></div>
-  <noscript>Ative o JavaScript no navegador para entrar no NEXUS.</noscript>
-</body>
+    <!--Modelos -->
+    <template id="online-track-template">
+      <article class="online-track-card">
+        <a data-online-primary target="_blank" rel="noopener noreferrer" class="online-cover" aria-label="Abrir música no provedor">
+          <img data-online-cover hidden alt="" loading="lazy" referrerpolicy="no-referrer" />
+          <span data-online-placeholder><i class="ph ph-music-notes"></i></span>
+          <span class="online-cover-action"><i class="ph ph-play"></i></span>
+        </a>
+        <div class="online-track-copy">
+          <span data-online-rank class="online-rank"></span>
+          <strong data-online-title></strong>
+          <span data-online-artist></span>
+          <span data-online-duration></span>
+        </div>
+        <details class="track-more online-more">
+          <summary aria-label="Mais opções" title="Mais opções"><i class="ph ph-dots-three"></i></summary>
+          <div class="track-menu">
+            <a data-online-spotify hidden target="_blank" rel="noopener noreferrer"><i class="ph ph-spotify-logo"></i> Abrir no Spotify</a>
+            <a data-online-lastfm hidden target="_blank" rel="noopener noreferrer"><i class="ph ph-arrow-square-out"></i> Abrir no Last.fm</a>
+          </div>
+        </details>
+      </article>
+    </template>
+    <template id="search-result-template"
+      ><button
+        type="button"
+        class="search-result grid grid-cols-[auto_1fr] gap-x-4 rounded-xl p-4 text-left"
+      >
+        <span data-result-type class="row-span-2 rounded-lg bg-white/10 px-3 py-2 text-xs"></span
+        ><strong data-result-title></strong
+        ><span data-result-subtitle class="text-sm opacity-60"></span></button
+    ></template>
+    <template id="playlist-item-template"
+      ><div class="group flex items-center">
+        <button
+          type="button"
+          data-open-playlist
+          class="min-w-0 flex-1 rounded-lg px-3 py-2 text-left"
+        >
+          <span data-playlist-name class="block truncate"></span
+          ><span class="text-xs opacity-60"
+            ><span data-playlist-count>0</span> músicas</span
+          ></button
+        ><button
+          type="button"
+          data-delete-playlist
+          class="invisible rounded-lg p-2 group-hover:visible focus:visible"
+          aria-label="Excluir playlist"
+        >
+          <i class="ph ph-x" aria-hidden="true"></i>
+        </button>
+      </div></template
+    >
+    <template id="toast-template"><div class="rounded-xl px-6 py-4 shadow-xl"></div></template>
+    <div
+      id="notifications"
+      role="status"
+      aria-live="polite"
+      class="fixed bottom-8 left-1/2 z-50 grid w-max max-w-[90vw] -translate-x-1/2 gap-3"
+    ></div>
+  </body>
 </html>

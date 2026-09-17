@@ -3,7 +3,10 @@
 const http = require("node:http");
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const { createApi } = require("./api");
+try { process.loadEnvFile(path.join(__dirname, '.env')); }
+catch (error) { if (error.code !== 'ENOENT') throw error; }
+const { createApi } = require("./src/server/api");
+const { serveAudio } = require("./src/server/media");
 
 // Lista explícita: somente os arquivos da interface podem ser servidos.
 const routes = new Map([
@@ -13,10 +16,13 @@ const routes = new Map([
   ["/login.html", ["src/pages/index.html", "text/html; charset=utf-8"]],
   ["/painel", ["src/pages/painel.html", "text/html; charset=utf-8"]],
   ["/painel.html", ["src/pages/painel.html", "text/html; charset=utf-8"]],
+  ["/admin", ["src/pages/admin.html", "text/html; charset=utf-8"]],
+  ["/admin.html", ["src/pages/admin.html", "text/html; charset=utf-8"]],
   ["/main.js", ["src/main.js", "text/javascript; charset=utf-8"]],
   ["/assets/images/fundo.png", ["src/assets/images/fundo.png", "image/png"]],
   ["/styles.css", ["src/styles/index.css", "text/css; charset=utf-8"]],
   ["/styles/index.css", ["src/styles/index.css", "text/css; charset=utf-8"]],
+  ["/styles/admin.css", ["src/styles/admin.css", "text/css; charset=utf-8"]],
   ["/styles/painel.css", ["src/styles/painel.css", "text/css; charset=utf-8"]],
 ]);
 
@@ -39,6 +45,17 @@ function createServer(options = {}) {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.writeHead(405, { Allow: 'GET, HEAD' });
       response.end('Método não permitido.');
+      return;
+    }
+    if (pathname.startsWith('/assets/videos/')) {
+      await serveAudio(request, response, pathname, path.join(__dirname, 'src/assets/videos'), {
+        prefix: '/assets/videos/', types: { '.webm': 'video/webm', '.mp4': 'video/mp4' }
+      });
+      return;
+    }
+    if (pathname.startsWith('/assets/songs/')) {
+      const download = new URL(request.url, 'http://localhost').searchParams.get('download') === '1';
+      await serveAudio(request, response, pathname, path.join(__dirname, 'src/assets/songs'), { download });
       return;
     }
     const route = routes.get(pathname);

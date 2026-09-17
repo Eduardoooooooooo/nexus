@@ -2,11 +2,12 @@
 [hidden] { display: none !important; }
 
 #nexus{
-    font-family: Bebas Neue;
+    font-family: Urbanist, sans-serif;
+    font-weight: 900;
 }
 
 body{
-    font-family: urbanist;
+    font-family: Urbanist, sans-serif;
     background-image: url(../assets/images/fundo.png);
     background-size: 100% 100%;
     min-height: 100vh;

@@ -23,7 +23,7 @@ function publicUser(user) {
   return { id, username, role, plan, status };
 }
 
-function openDatabase(filename = path.join(__dirname, 'data', 'nexus.sqlite')) {
+function openDatabase(filename = path.join(__dirname, '..', '..', 'data', 'nexus.sqlite')) {
   if (filename !== ':memory:') mkdirSync(path.dirname(filename), { recursive: true });
   const connection = new DatabaseSync(filename, { timeout: 5000 });
   try {

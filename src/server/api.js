@@ -1,6 +1,7 @@
 "use strict";
 
 const { randomBytes } = require('node:crypto');
+const { createMusicMetadata } = require('./music-metadata');
 const { openDatabase, verifyPassword, publicUser } = require('./database');
 const COOKIE = 'nexus_session';
 const SESSION_SECONDS = 8 * 60 * 60;
@@ -43,7 +44,8 @@ function userFields(body, editing = false) {
   return { username, password, plan: body.plan, status: body.status };
 }
 
-function createApi({ databasePath } = {}) {
+function createApi({ databasePath, metadataOptions } = {}) {
+  const musicMetadata = createMusicMetadata(metadataOptions);
   const db = openDatabase(databasePath);
   const sessions = new Map();
   function tokenFrom(request) {
@@ -105,6 +107,28 @@ function createApi({ databasePath } = {}) {
         sessions.delete(tokenFrom(request));
         cookie(response, '', 0);
         json(response, 200, { message: 'Sessão encerrada.' });
+        return;
+      }
+      if (pathname === '/api/music/metadata') {
+        requireMethod(request, response, ['GET']);
+        if (!sessionUser(request)) fail(401, 'Entre novamente para continuar.');
+        const params = new URL(request.url, 'http://localhost').searchParams;
+        const result = await musicMetadata.lookup({ artist: params.get('artist'), track: params.get('track') });
+        json(response, 200, result);
+        return;
+      }
+      if (pathname === '/api/music/discover') {
+        requireMethod(request, response, ['GET']);
+        if (!sessionUser(request)) fail(401, 'Entre novamente para continuar.');
+        const params = new URL(request.url, 'http://localhost').searchParams;
+        json(response, 200, await musicMetadata.discover(params.get('limit')));
+        return;
+      }
+      if (pathname === '/api/music/search') {
+        requireMethod(request, response, ['GET']);
+        if (!sessionUser(request)) fail(401, 'Entre novamente para continuar.');
+        const params = new URL(request.url, 'http://localhost').searchParams;
+        json(response, 200, await musicMetadata.searchCatalog(params.get('q'), params.get('limit')));
         return;
       }
       if (pathname !== '/api/users' && !pathname.startsWith('/api/users/')) fail(404, 'Rota não encontrada.');
