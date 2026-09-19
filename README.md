@@ -12,6 +12,14 @@ npm start
 
 Abra http://localhost:3000. A porta pode ser definida por `PORT` no `.env`.
 
+Na primeira execução após uma atualização, o SQLite aplica as migrações automaticamente. Faça uma cópia da pasta `data/` antes de mover o projeto entre computadores.
+
+Para executar as verificações automatizadas:
+
+```sh
+npm test
+```
+
 ## Organização
 
 - `server.js`: ponto de entrada e rotas dos arquivos da interface.
@@ -31,3 +39,8 @@ Os caminhos citados na documentação são relativos à raiz do projeto.
 
 - [Banco de dados e acessos iniciais](docs/SQLITE.md)
 - [Integrações e metadados das músicas](docs/MUSIC-API.md)
+- [Biblioteca de mangás com Komga](docs/KOMGA.md)
+
+- [Catálogo e leitura com MangaDex](docs/MANGADEX.md)
+- [Dados complementares de mangás com Jikan](docs/JIKAN.md)
+- [Biblioteca, leitor e controle de conteúdo](docs/MANGA-LIBRARY.md)

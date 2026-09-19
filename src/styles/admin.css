@@ -675,3 +675,8 @@ body[data-page="admin"] div{
     .admin-actions button span{
         display:none
     }}
+/* Sugestões enviadas pelos usuários */
+.admin-suggestions { display:grid; gap:10px; padding:18px 24px 26px; }
+.admin-suggestion { display:grid; gap:7px; border:1px solid rgba(255,255,255,.09); border-radius:12px; padding:14px; background:rgba(255,255,255,.02); }
+.admin-suggestion header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; }
+.admin-suggestion p { margin:0; color:#aaa3b2; white-space:pre-wrap; }

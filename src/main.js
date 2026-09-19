@@ -679,13 +679,132 @@ function createOnlineCatalog({ db, search, template, discover, results, collecti
   return { load() { if (!discoverLoaded && !search.value.trim()) return request(); } };
 }
 
+function createMangaExperience({ db, elements, document: doc, user, notify = () => {} }) {
+  const on = (node, event, handler) => node?.addEventListener(event, handler);
+  let provider = 'mangadex', catalogPage = 0, requestId = 0, catalogMode = 'catalog';
+  let currentSeriesId = '', currentBook = null, chapterBooks = [], pages = [], pageIndex = 0;
+  let readerMode = user.readerMode === 'continuous' ? 'continuous' : 'paged', zoom = 1;
+  let progressTimer, touchStart = null;
+  const endpoint = () => `/api/${provider}`;
+
+  function cardData(item) {
+    return { id:item.id || item.series_id, title:item.title || 'Sem título', thumbnailUrl:item.thumbnailUrl || item.cover_url || '', authors:item.authors || [], status:item.status || '', booksCount:item.booksCount, booksReadCount:item.booksReadCount || 0 };
+  }
+  function renderSeries(items, total = items.length, playlistId = null) {
+    elements.grid.replaceChildren(); elements.count.textContent = `${total} ${total === 1 ? 'obra' : 'obras'}`; elements.empty.hidden = Boolean(items.length);
+    for (const raw of items) {
+      const item=cardData(raw), card=elements.seriesTemplate.content.firstElementChild.cloneNode(true), cover=card.querySelector('[data-manga-cover]'), placeholder=card.querySelector('[data-manga-placeholder]');
+      cover.src=item.thumbnailUrl;cover.alt=`Capa de ${item.title}`;cover.onload=()=>placeholder.hidden=true;cover.onerror=()=>{cover.hidden=true;placeholder.hidden=false};
+      card.querySelector('[data-manga-title]').textContent=item.title;card.querySelector('[data-manga-author]').textContent=item.authors.join(', ')||item.status||'Mangá';
+      card.querySelector('[data-manga-books]').textContent=item.booksCount==null?'Ver capítulos':`${item.booksCount} capítulos`;card.querySelector('[data-manga-progress]').textContent=item.booksReadCount?`${item.booksReadCount} lidos`:'Não iniciado';
+      card.querySelector('[data-manga-open]').onclick=()=>location.assign(`/mangas/${raw.provider||provider}/${encodeURIComponent(item.id)}`);
+      if(playlistId){const remove=doc.createElement('button');remove.type='button';remove.className='manga-remove-from-list';remove.innerHTML='<i class="ph ph-trash"></i> Remover da lista';remove.onclick=async()=>{await db.request(`/api/manga/playlists/${playlistId}/items/${encodeURIComponent(raw.provider||provider)}/${encodeURIComponent(item.id)}`,{method:'DELETE'});card.remove();notify('Mangá removido da lista.');};card.querySelector('.manga-card-copy').append(remove);}
+      elements.grid.append(card);
+    }
+  }
+  async function load(force=false) {
+    const current=++requestId;elements.grid.replaceChildren();elements.empty.hidden=true;elements.refresh.dataset.loading='true';elements.status.textContent='Carregando catálogo…';
+    try {
+      if(catalogMode==='favorites') { const result=await db.request('/api/manga/favorites');if(current!==requestId)return;renderSeries(result.items);elements.previous.disabled=elements.next.disabled=true;elements.page.textContent='Favoritos'; }
+      else { const query=elements.search.value.trim();const result=await db.request(endpoint()+'/series?'+new URLSearchParams({q:query,size:'30',page:catalogPage,lang:'pt-br'}));if(current!==requestId)return;renderSeries(result.content,result.totalElements);elements.previous.disabled=catalogPage===0;elements.next.disabled=result.last;elements.page.textContent=`Página ${catalogPage+1}`; }
+      elements.status.textContent='';
+    } catch(error){if(current===requestId){elements.grid.replaceChildren();elements.count.textContent='';elements.status.textContent=error.message;}}
+    finally{if(current===requestId)delete elements.refresh.dataset.loading;}
+  }
+  async function setView(view) {
+    elements.grid.dataset.layout=view; if(elements.viewToggle)elements.viewToggle.innerHTML=`<i class="ph ph-${view==='grid'?'list':'squares-four'}"></i>`;
+    try{await db.request('/api/account/preferences',{method:'PUT',body:JSON.stringify({catalogView:view,readerMode})});}catch(error){notify(error.message,false);}
+  }
+  async function loadPlaylists(open=false) {
+    const result=await db.request('/api/manga/playlists');
+    if(elements.addPlaylist){elements.addPlaylist.replaceChildren(new Option('Adicionar à lista…',''));for(const p of result.playlists)elements.addPlaylist.add(new Option(`${p.name} (${p.item_count})`,p.id));}
+    if(elements.playlistsList){elements.playlistsList.replaceChildren();for(const p of result.playlists){const row=doc.createElement('article');row.className='manga-playlist-row';const title=doc.createElement('strong');title.textContent=`${p.name} · ${p.item_count}`;const openButton=doc.createElement('button');openButton.type='button';openButton.textContent='Abrir';openButton.onclick=async()=>{const data=await db.request(`/api/manga/playlists/${p.id}`);renderSeries(data.items,data.items.length,p.id);elements.playlistsDialog.close();elements.page.textContent=p.name;};const rename=doc.createElement('button');rename.type='button';rename.textContent='Renomear';rename.onclick=async()=>{const name=prompt('Novo nome da lista',p.name)?.trim();if(!name)return;await db.request(`/api/manga/playlists/${p.id}`,{method:'PUT',body:JSON.stringify({name})});loadPlaylists();};const remove=doc.createElement('button');remove.type='button';remove.textContent='Excluir';remove.onclick=async()=>{await db.request(`/api/manga/playlists/${p.id}`,{method:'DELETE'});loadPlaylists();};row.append(title,openButton,rename,remove);elements.playlistsList.append(row);}}
+    if(open&&!elements.playlistsDialog.open)elements.playlistsDialog.showModal();return result.playlists;
+  }
+  function progressUrl(){return `/api/manga/progress/${provider}/${encodeURIComponent(currentSeriesId)}/${encodeURIComponent(currentBook.id)}`;}
+  function saveProgress(){clearTimeout(progressTimer);if(!currentBook)return;progressTimer=setTimeout(()=>db.request(progressUrl(),{method:'PUT',body:JSON.stringify({page:pageIndex+1,mode:readerMode})}).catch(()=>{}),300);}
+  function pageUrl(page){return endpoint()+`/books/${encodeURIComponent(currentBook.id)}/pages/${page.number}`;}
+  function applyZoom(){elements.readerStage.style.setProperty('--reader-zoom',String(zoom));elements.readerImage.style.width=`${zoom*100}%`;elements.readerContinuous?.querySelectorAll('img').forEach(img=>img.style.width=`${zoom*100}%`);}
+  function showPage(index) {
+    if(!currentBook||!pages.length)return;pageIndex=Math.max(0,Math.min(pages.length-1,index));const page=pages[pageIndex];elements.readerImage.hidden=false;elements.readerImage.src=pageUrl(page);elements.readerCounter.textContent=`${pageIndex+1} / ${pages.length}`;elements.readerPrevious.disabled=pageIndex===0;elements.readerNext.disabled=pageIndex===pages.length-1;elements.readerStatus.textContent='';elements.readerStage.scrollTo({top:0,behavior:'instant'});applyZoom();saveProgress();
+  }
+  function renderContinuous() {
+    elements.readerImage.hidden=true;elements.readerContinuous.hidden=false;elements.readerContinuous.replaceChildren();
+    pages.forEach((page,index)=>{const img=doc.createElement('img');img.loading=index<2?'eager':'lazy';img.alt=`Página ${index+1}`;img.src=pageUrl(page);img.dataset.index=index;elements.readerContinuous.append(img);});applyZoom();
+    const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(visible){pageIndex=Number(visible.target.dataset.index);elements.readerCounter.textContent=`${pageIndex+1} / ${pages.length}`;saveProgress();}},{root:elements.readerStage,threshold:[.35,.7]});elements.readerContinuous.querySelectorAll('img').forEach(img=>observer.observe(img));
+  }
+  async function loadComments(){if(!elements.commentsList||!currentBook)return;try{const data=await db.request(`/api/manga/comments/${provider}/${encodeURIComponent(currentSeriesId)}/${encodeURIComponent(currentBook.id)}`);elements.commentsList.replaceChildren();for(const c of data.comments){const row=doc.createElement('article');const header=doc.createElement('strong');header.textContent=c.author;const text=doc.createElement('p');text.textContent=c.content;const actions=doc.createElement('div');if(c.own){const edit=doc.createElement('button');edit.type='button';edit.textContent='Editar';edit.onclick=async()=>{const content=prompt('Editar comentário',c.content)?.trim();if(!content)return;await db.request(`/api/manga/comments/${c.id}`,{method:'PUT',body:JSON.stringify({content})});loadComments();};const remove=doc.createElement('button');remove.type='button';remove.textContent='Excluir';remove.onclick=async()=>{await db.request(`/api/manga/comments/${c.id}`,{method:'DELETE'});loadComments();};actions.append(edit,remove);}else{const report=doc.createElement('button');report.type='button';report.textContent='Denunciar';report.onclick=async()=>{const reason=prompt('Motivo da denúncia')?.trim();if(!reason)return;await db.request(`/api/manga/comments/${c.id}/report`,{method:'POST',body:JSON.stringify({reason})});notify('Denúncia registrada.');};actions.append(report);}row.append(header,text,actions);elements.commentsList.append(row);}elements.commentsStatus.textContent=data.comments.length?'':'Ainda não há comentários.';}catch(error){elements.commentsStatus.textContent=error.message;}}
+  async function openBook(book,books=chapterBooks,seriesId=currentSeriesId) {
+    currentBook=book;chapterBooks=books;currentSeriesId=seriesId;pageIndex=0;pages=[];elements.readerTitle.textContent=book.title;elements.readerCounter.textContent='0 / 0';elements.readerStatus.textContent='Preparando leitura…';elements.readerContinuous?.replaceChildren();if(!elements.readerDialog.open)elements.readerDialog.showModal();
+    const index=chapterBooks.findIndex(item=>item.id===book.id);if(elements.readerPrevChapter)elements.readerPrevChapter.disabled=index<=0;if(elements.readerNextChapter)elements.readerNextChapter.disabled=index<0||index>=chapterBooks.length-1;
+    try{const [result,saved]=await Promise.all([db.request(endpoint()+`/books/${encodeURIComponent(book.id)}/pages`),db.request(progressUrl())]);pages=result.pages||[];readerMode=saved.progress.mode==='continuous'?'continuous':'paged';pageIndex=Math.max(0,Math.min(pages.length-1,Number(saved.progress.page||1)-1));if(!pages.length){elements.readerStatus.textContent='Este capítulo não possui páginas disponíveis.';return;}if(readerMode==='continuous'){renderContinuous();setTimeout(()=>elements.readerContinuous.children[pageIndex]?.scrollIntoView({block:'start'}),0);}else{elements.readerContinuous.hidden=true;showPage(pageIndex);}elements.readerMode?.setAttribute('aria-pressed',String(readerMode==='continuous'));loadComments();}catch(error){elements.readerStatus.textContent=error.message;}
+  }
+  function adjacentChapter(delta){const i=chapterBooks.findIndex(b=>b.id===currentBook?.id),next=chapterBooks[i+delta];if(next)openBook(next,chapterBooks,currentSeriesId);}
+  on(elements.search,'input',()=>{clearTimeout(elements.search._timer);catalogPage=0;elements.search._timer=setTimeout(()=>load(true),450)});on(elements.refresh,'click',()=>load(true));on(elements.previous,'click',()=>{catalogPage=Math.max(0,catalogPage-1);load(true)});on(elements.next,'click',()=>{catalogPage++;load(true)});
+  on(elements.showCatalog,'click',()=>{catalogMode='catalog';catalogPage=0;load(true)});on(elements.showFavorites,'click',()=>{catalogMode='favorites';load(true)});on(elements.showPlaylists,'click',()=>loadPlaylists(true));on(elements.viewToggle,'click',()=>setView(elements.grid.dataset.layout==='list'?'grid':'list'));
+  on(elements.playlistsClose,'click',()=>elements.playlistsDialog.close());on(elements.playlistForm,'submit',async event=>{event.preventDefault();try{await db.request('/api/manga/playlists',{method:'POST',body:JSON.stringify({name:elements.playlistName.value.trim()})});elements.playlistForm.reset();elements.playlistStatus.textContent='Lista criada.';loadPlaylists();}catch(error){elements.playlistStatus.textContent=error.message;}});
+  on(elements.readerClose,'click',()=>elements.readerDialog.close());on(elements.readerFullscreen,'click',()=>doc.fullscreenElement?doc.exitFullscreen():elements.readerDialog.requestFullscreen?.());on(elements.readerPrevious,'click',()=>showPage(pageIndex-1));on(elements.readerNext,'click',()=>showPage(pageIndex+1));on(elements.readerPrevChapter,'click',()=>adjacentChapter(-1));on(elements.readerNextChapter,'click',()=>adjacentChapter(1));
+  on(elements.readerMode,'click',async()=>{readerMode=readerMode==='paged'?'continuous':'paged';if(readerMode==='continuous')renderContinuous();else{elements.readerContinuous.hidden=true;showPage(pageIndex)};await db.request('/api/account/preferences',{method:'PUT',body:JSON.stringify({catalogView:elements.grid.dataset.layout||'grid',readerMode})});});on(elements.zoomIn,'click',()=>{zoom=Math.min(2.5,zoom+.15);applyZoom()});on(elements.zoomOut,'click',()=>{zoom=Math.max(.6,zoom-.15);applyZoom()});
+  on(elements.readerStage,'click',event=>{if(readerMode!=='paged'||event.target!==elements.readerStage&&event.target!==elements.readerImage)return;const x=event.clientX/innerWidth;if(x<.3)showPage(pageIndex-1);else if(x>.7)showPage(pageIndex+1)});on(elements.readerStage,'touchstart',event=>{if(event.touches.length===1)touchStart=event.touches[0].clientX},{passive:true});on(elements.readerStage,'touchend',event=>{if(touchStart==null)return;const dx=event.changedTouches[0].clientX-touchStart;touchStart=null;if(Math.abs(dx)>60)(dx<0?showPage(pageIndex+1):showPage(pageIndex-1))},{passive:true});
+  on(elements.commentForm,'submit',async event=>{event.preventDefault();try{await db.request(`/api/manga/comments/${provider}/${encodeURIComponent(currentSeriesId)}/${encodeURIComponent(currentBook.id)}`,{method:'POST',body:JSON.stringify({content:elements.commentText.value.trim()})});elements.commentForm.reset();loadComments();}catch(error){elements.commentsStatus.textContent=error.message;}});
+  doc.addEventListener('keydown',event=>{if(!elements.readerDialog.open)return;if(event.key==='ArrowLeft')showPage(pageIndex-1);if(event.key==='ArrowRight')showPage(pageIndex+1);if(event.key==='PageUp')adjacentChapter(-1);if(event.key==='PageDown')adjacentChapter(1)});
+  elements.grid.dataset.layout=user.catalogView==='list'?'list':'grid';loadPlaylists().catch(()=>{});
+  return { load, openBook, useProvider(value){provider=value==='komga'?'komga':'mangadex'}, loadPlaylists };
+}
+
+function createMangaDetailV2({ db, catalog, elements, notify = () => {} }) {
+  let provider='',id='',series=null,state=null,allBooks=[],requestId=0,totalBooks=0,metaChapters=0,metaVolumes=0;
+  const statusLabels={ongoing:'Em publicação',completed:'Completo',hiatus:'Em hiato',cancelled:'Cancelado',Publishing:'Em publicação',Finished:'Completo','On Hiatus':'Em hiato',Discontinued:'Cancelado'};
+  const stateUrl=()=>`/api/manga/state/${provider}/${encodeURIComponent(id)}`;
+  function normalizeBooks(books){const unique=new Map();for(const book of books)if(!unique.has(book.id))unique.set(book.id,book);return [...unique.values()].sort((a,b)=>{const av=parseFloat(a.chapter??a.number)||0,bv=parseFloat(b.chapter??b.number)||0;return av-bv||String(a.title).localeCompare(String(b.title),'pt-BR',{numeric:true})});}
+  function sync(){if(!state)return;elements.readingStatus.value=state.reading_status;elements.favorite.setAttribute('aria-pressed',String(state.favorite));elements.favorite.querySelector('span').textContent=state.favorite?'Favoritado':'Favoritar';elements.viewMode.value=state.view_mode;elements.userProgress.textContent=`${state.chapters_read} capítulos · ${state.volumes_read} volumes`;elements.rating?.querySelectorAll('[data-rating]').forEach(b=>b.dataset.active=String(Number(b.dataset.rating)<=Number(state.rating||0)));elements.like?.setAttribute('aria-pressed',String(state.reaction===1));elements.dislike?.setAttribute('aria-pressed',String(state.reaction===-1));}
+  async function save(patch){try{const result=await db.request(stateUrl(),{method:'PUT',body:JSON.stringify({...patch,title:series?.title||'',coverUrl:series?.thumbnailUrl||'',sourceUrl:series?.sourceUrl||''})});state=result.state;sync();renderSummary(result.summary);}catch(error){notify(error.message,false);}}
+  function renderSummary(summary={}){if(elements.ratingSummary)elements.ratingSummary.textContent=summary.ratingCount?`${summary.average} de 5 · ${summary.ratingCount} avaliações`:'Sem avaliações';if(elements.like)elements.like.querySelector('span').textContent=summary.likes||0;if(elements.dislike)elements.dislike.querySelector('span').textContent=summary.dislikes||0;}
+  function row(book){const node=elements.bookTemplate.content.firstElementChild.cloneNode(true),image=node.querySelector('[data-book-cover]');image.src=book.thumbnailUrl;image.onerror=()=>image.style.visibility='hidden';node.querySelector('[data-book-title]').textContent=book.title;node.querySelector('[data-book-pages]').textContent=`${book.pagesCount} páginas`;node.querySelector('[data-book-state]').textContent='Ler agora';node.onclick=()=>{catalog.useProvider(provider);catalog.openBook(book,allBooks,id)};return node;}
+  function render(){elements.books.replaceChildren();if(elements.viewMode.value==='chapter'){allBooks.forEach(b=>elements.books.append(row(b)));return;}const groups=new Map();for(const b of allBooks){const v=b.volume||'Sem volume';if(!groups.has(v))groups.set(v,[]);groups.get(v).push(b);}for(const [volume,books] of groups){const section=document.createElement('section');section.className='manga-volume-group';const h=document.createElement('h4');h.textContent=volume==='Sem volume'?volume:`Volume ${volume}`;const list=document.createElement('div');list.className='manga-volume-list';books.forEach(b=>list.append(row(b)));section.append(h,list);elements.books.append(section);}}
+  elements.readingStatus.onchange=()=>save({readingStatus:elements.readingStatus.value});elements.favorite.onclick=()=>save({favorite:!state.favorite});elements.viewMode.onchange=()=>{save({viewMode:elements.viewMode.value});render()};
+  elements.editProgress.onclick=()=>{elements.progressChapters.value=state.chapters_read;elements.progressVolumes.value=state.volumes_read;elements.progressDialog.showModal()};elements.progressClose.onclick=elements.progressCancel.onclick=()=>elements.progressDialog.close();elements.progressForm.onsubmit=event=>{event.preventDefault();save({chaptersRead:Math.max(0,Math.floor(Number(elements.progressChapters.value)||0)),volumesRead:Math.max(0,Math.floor(Number(elements.progressVolumes.value)||0))});elements.progressDialog.close()};
+  elements.rating?.querySelectorAll('[data-rating]').forEach(button=>button.onclick=()=>save({rating:Number(button.dataset.rating)}));if(elements.like)elements.like.onclick=()=>save({reaction:state.reaction===1?0:1});if(elements.dislike)elements.dislike.onclick=()=>save({reaction:state.reaction===-1?0:-1});if(elements.addPlaylist)elements.addPlaylist.onchange=async()=>{if(!elements.addPlaylist.value)return;try{await db.request(`/api/manga/playlists/${elements.addPlaylist.value}/items`,{method:'POST',body:JSON.stringify({provider,seriesId:id,title:series.title,coverUrl:series.thumbnailUrl,sourceUrl:series.sourceUrl||''})});notify('Mangá adicionado à lista.');elements.addPlaylist.value='';catalog.loadPlaylists();}catch(error){notify(error.message,false);}};
+  async function load(p,sid,offset=0){const current=++requestId;provider=p;id=sid;catalog.useProvider(p);if(!offset){allBooks=[];elements.books.replaceChildren();elements.title.textContent='Carregando mangá…';elements.status.textContent='Buscando informações…';}
+    try{if(!offset){const [detail,userState]=await Promise.all([db.request(`/api/${p}/series/${encodeURIComponent(sid)}`),db.request(stateUrl())]);if(current!==requestId)return;series=detail.series;state=userState.state;renderSummary(userState.summary);sync();let jikan=null;try{jikan=(await db.request('/api/jikan/manga?'+new URLSearchParams({q:series.title}))).manga}catch{};document.title=`${series.title} | NEXUS`;elements.title.textContent=series.title;elements.author.textContent=(series.authors?.length?series.authors:jikan?.authors||[]).join(', ')||'Autor não informado';elements.summary.textContent=series.summary||jikan?.synopsis||'Descrição não cadastrada.';elements.infoStatus.textContent=statusLabels[jikan?.status||series.status]||jikan?.status||series.status||'Não informado';elements.infoGenres.textContent=(jikan?.genres?.length?jikan.genres:series.genres||[]).slice(0,6).join(', ')||'Não informado';metaChapters=jikan?.chapters||Number(series.booksCount)||0;metaVolumes=jikan?.volumes||0;elements.infoChapters.textContent=metaChapters||'—';elements.infoYear.textContent=jikan?.releaseYear||series.releaseYear||'Não informado';elements.dataSource.hidden=!jikan;elements.cover.src=series.thumbnailUrl;elements.cover.alt=`Capa de ${series.title}`;elements.cover.onload=()=>{elements.cover.hidden=false;elements.placeholder.hidden=true};elements.cover.onerror=()=>{elements.cover.hidden=true;elements.placeholder.hidden=false};elements.source.hidden=!series.sourceUrl;if(series.sourceUrl)elements.source.href=series.sourceUrl;await catalog.loadPlaylists();}
+      const result=await db.request(`/api/${p}/series/${encodeURIComponent(sid)}/books?`+new URLSearchParams({lang:'pt-br',offset}));if(current!==requestId)return;allBooks=normalizeBooks([...allBooks,...(result.books||[])]);totalBooks=result.total??allBooks.length;render();elements.count.textContent=`${totalBooks} capítulos`;elements.infoChapters.textContent=metaChapters||totalBooks;elements.progressChapters.max=metaChapters||totalBooks||'';elements.progressVolumes.max=metaVolumes||new Set(allBooks.map(b=>b.volume).filter(Boolean)).size||'';elements.status.textContent=allBooks.length?'':'Nenhum capítulo disponível em português do Brasil.';elements.more.hidden=result.nextOffset==null;elements.more.onclick=()=>load(p,sid,result.nextOffset);
+    }catch(error){if(current===requestId)elements.status.textContent=error.message;}}
+  return {load};
+}
+
+function createAccountSettings({ db, dialog, button, user, notify = () => {} }) {
+  if(!dialog||!button)return;
+  dialog.innerHTML=`<div class="account-settings-heading"><div><p class="user-eyebrow">CONTA NEXUS</p><h2>Perfil e configurações</h2></div><button id="account-close" type="button" aria-label="Fechar"><i class="ph ph-x"></i></button></div>
+  <div class="account-settings-grid"><nav aria-label="Categorias"><a href="#settings-account">Conta</a><a href="#settings-appearance">Aparência</a><a href="#settings-reading">Leitura</a><a href="#settings-privacy">Privacidade</a><a href="#settings-content">Conteúdo</a><a href="#settings-feedback">Sugestões</a></nav><div class="account-settings-content">
+  <section id="settings-account"><h3>Conta</h3><form id="profile-form"><div class="avatar-editor"><img id="profile-avatar-preview" alt="Prévia da foto" hidden><label>Foto de perfil<input id="profile-avatar" type="file" accept="image/png,image/jpeg,image/webp"></label></div><label>Nome de exibição<input id="profile-display-name" maxlength="80" required></label><label>Biografia<textarea id="profile-bio" maxlength="500"></textarea></label><label>Interesses, separados por vírgula<input id="profile-interests" maxlength="480"></label><button type="submit">Salvar perfil</button></form><div id="profile-stats" class="profile-stats"></div></section>
+  <section id="settings-appearance"><h3>Aparência</h3><label>Visualização do catálogo<select id="setting-catalog-view"><option value="grid">Grade</option><option value="list">Lista</option></select></label></section>
+  <section id="settings-reading"><h3>Leitura</h3><label>Modo padrão<select id="setting-reader-mode"><option value="paged">Uma página</option><option value="continuous">Rolagem contínua</option></select></label></section>
+  <section id="settings-privacy"><h3>Privacidade</h3><label><input id="profile-public" type="checkbox"> Tornar perfil público</label><label><input id="profile-interests-public" type="checkbox"> Mostrar interesses no perfil</label><p>Faixa etária e PIN nunca aparecem no perfil público.</p></section>
+  <section id="settings-content"><h3>Conteúdo</h3><div id="age-confirmation"><p>Confirme somente se esta conta pertence a uma pessoa adulta. Obras explícitas continuam ocultas até a criação do PIN.</p><button type="button" data-age="minor">Sou menor de idade</button><button type="button" data-age="adult">Sou maior de idade</button></div><form id="pin-form"><label>PIN de 4 números<input id="content-pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required></label><button id="pin-submit" type="submit">Ativar conteúdo adulto</button></form><button id="pin-lock" type="button">Ocultar conteúdo adulto</button><form id="pin-reset-form"><label>Senha da conta<input id="content-password" type="password" required></label><button type="submit">Redefinir PIN e bloquear conteúdo</button></form><p id="content-status" role="status"></p></section>
+  <section id="settings-feedback"><h3>Sugestões e problemas</h3><form id="suggestion-form"><label>Assunto<input id="suggestion-subject" maxlength="120" required></label><label>Descrição<textarea id="suggestion-description" maxlength="2000" required></textarea></label><button type="submit">Enviar sugestão</button></form></section>
+  </div></div>`;
+  const $=id=>dialog.querySelector('#'+id);let profile=user,avatar='';
+  function apply(data){profile=data.user;avatar=profile.avatar||'';$('profile-display-name').value=profile.displayName||profile.username;$('profile-bio').value=profile.bio||'';$('profile-interests').value=(profile.interests||[]).join(', ');$('profile-public').checked=profile.profilePublic;$('profile-interests-public').checked=profile.interestsPublic;$('setting-catalog-view').value=profile.catalogView||'grid';$('setting-reader-mode').value=profile.readerMode||'paged';$('age-confirmation').hidden=profile.ageGroup!=='unknown';$('pin-form').hidden=profile.ageGroup!=='adult';$('pin-reset-form').hidden=profile.ageGroup!=='adult';$('pin-lock').hidden=profile.ageGroup!=='adult'||!profile.explicitEnabled;$('pin-submit').textContent=profile.contentPinSet?'Desbloquear conteúdo':'Criar PIN e ativar';const image=$('profile-avatar-preview');image.hidden=!avatar;if(avatar)image.src=avatar;const s=data.stats||{};$('profile-stats').textContent=`${s.favorites||0} favoritos · ${s.playlists||0} listas · ${s.chaptersStarted||0} leituras iniciadas`;}
+  async function refresh(){try{apply(await db.request('/api/account/profile'));}catch(error){notify(error.message,false);}}
+  button.addEventListener('click',refresh);$('account-close').onclick=()=>dialog.close();dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});
+  $('profile-avatar').onchange=()=>{const file=$('profile-avatar').files[0];if(!file)return;if(file.size>400*1024){notify('A foto deve ter até 400 KB.',false);$('profile-avatar').value='';return;}const reader=new FileReader();reader.onload=()=>{avatar=reader.result;const image=$('profile-avatar-preview');image.src=avatar;image.hidden=false};reader.readAsDataURL(file)};
+  $('profile-form').onsubmit=async event=>{event.preventDefault();try{const data=await db.request('/api/account/profile',{method:'PUT',body:JSON.stringify({displayName:$('profile-display-name').value.trim(),bio:$('profile-bio').value.trim(),interests:$('profile-interests').value.split(',').map(v=>v.trim()).filter(Boolean),avatar,profilePublic:$('profile-public').checked,interestsPublic:$('profile-interests-public').checked})});apply(data);notify('Perfil salvo.')}catch(error){notify(error.message,false)}};
+  for(const input of [$('profile-public'),$('profile-interests-public')])input.onchange=()=> $('profile-form').requestSubmit();
+  for(const input of [$('setting-catalog-view'),$('setting-reader-mode')])input.onchange=async()=>{try{const data=await db.request('/api/account/preferences',{method:'PUT',body:JSON.stringify({catalogView:$('setting-catalog-view').value,readerMode:$('setting-reader-mode').value})});profile=data.user;notify('Preferências salvas.')}catch(error){notify(error.message,false)}};
+  dialog.querySelectorAll('[data-age]').forEach(control=>control.onclick=async()=>{try{const data=await db.request('/api/account/age',{method:'POST',body:JSON.stringify({adult:control.dataset.age==='adult'})});apply({user:data.user,stats:(await db.request('/api/account/profile')).stats});$('content-status').textContent='Confirmação registrada.';}catch(error){$('content-status').textContent=error.message}});
+  $('pin-form').onsubmit=async event=>{event.preventDefault();try{const endpoint=profile.contentPinSet?'/api/account/content-unlock':'/api/account/content-pin';const data=await db.request(endpoint,{method:'POST',body:JSON.stringify({pin:$('content-pin').value})});apply({user:data.user,stats:(await db.request('/api/account/profile')).stats});$('content-pin').value='';$('content-status').textContent='Filtro adulto ativado com PIN.';}catch(error){$('content-status').textContent=error.message}};
+  $('pin-lock').onclick=async()=>{try{const data=await db.request('/api/account/content-lock',{method:'POST',body:'{}'});apply({user:data.user,stats:(await db.request('/api/account/profile')).stats});$('content-status').textContent='Conteúdo adulto ocultado.';}catch(error){$('content-status').textContent=error.message}};
+  $('pin-reset-form').onsubmit=async event=>{event.preventDefault();try{const data=await db.request('/api/account/content-reset',{method:'POST',body:JSON.stringify({password:$('content-password').value})});profile=data.user;$('content-password').value='';$('content-status').textContent='Conteúdo adulto bloqueado e PIN removido.';}catch(error){$('content-status').textContent=error.message}};
+  $('suggestion-form').onsubmit=async event=>{event.preventDefault();try{await db.request('/api/suggestions',{method:'POST',body:JSON.stringify({subject:$('suggestion-subject').value.trim(),description:$('suggestion-description').value.trim()})});event.target.reset();notify('Sugestão enviada.')}catch(error){notify(error.message,false)}};
+}
+
 // Cada página inicializa somente seus próprios controles.
 async function initializeApp() {
   const db = new ApiDB();
   const $ = id => document.getElementById(id);
   const loginForm = $('login-form');
   const currentUser = await db.getSession();
-  const destination = user => user?.role === 'admin' ? '/admin' : '/painel';
+  const destination = user => user?.role === 'admin' ? '/admin' : '/filmes';
 
   if (loginForm) {
     if (currentUser) { location.replace(destination(currentUser)); return; }
@@ -711,7 +830,7 @@ async function initializeApp() {
 
   if (!currentUser) { location.replace('/login'); return; }
   const page = document.body.dataset.page;
-  if (page === 'admin' && currentUser.role !== 'admin') { location.replace('/painel'); return; }
+  if (page === 'admin' && currentUser.role !== 'admin') { location.replace('/filmes'); return; }
   if (page === 'user' && currentUser.role === 'admin') { location.replace('/admin'); return; }
   if (!['admin', 'user'].includes(page)) { location.replace(destination(currentUser)); return; }
 
@@ -823,18 +942,28 @@ async function initializeApp() {
     statusFilter.addEventListener('change', renderUsers);
     $('cancel-user').onclick = () => dialog.close();
     $('add-user').onclick = () => openUserDialog();
+    async function populateSuggestions() {
+      const target=$('admin-suggestions');
+      try { const data=await db.request('/api/admin/suggestions');target.replaceChildren();if(!data.suggestions.length){target.textContent='Nenhuma sugestão recebida.';return;}for(const item of data.suggestions){const article=document.createElement('article');article.className='admin-suggestion';const header=document.createElement('header');const title=document.createElement('strong');title.textContent=item.subject;const meta=document.createElement('span');meta.textContent=`${item.username} · ${new Date(item.created_at+'Z').toLocaleString('pt-BR')}`;const text=document.createElement('p');text.textContent=item.description;header.append(title,meta);article.append(header,text);target.append(article);}} catch(error){target.textContent=error.message;}
+    }
+    $('refresh-suggestions').onclick=populateSuggestions;
     document.querySelectorAll('[data-logout]').forEach(button => { button.onclick = () => logout(); });
-    await populateUsers();
+    await Promise.all([populateUsers(),populateSuggestions()]);
     return;
   }
 
   const username = currentUser.username;
-  let onlineCatalog;
+  let onlineCatalog, mangaCatalog;
   function switchTab(name) {
     if (name === 'music') { metadataCatalog.load(); onlineCatalog?.load(); }
+    if (name === 'mangas') mangaCatalog?.load();
     libraryCatalog?.setLastTab(name);
     document.querySelectorAll('[data-view]').forEach(view => { view.hidden = view.dataset.view !== name; });
-    document.querySelectorAll('[data-tab]').forEach(button => { button.setAttribute('aria-pressed', String(button.dataset.tab === name)); });
+    const active = name === 'manga-detail' ? 'mangas' : name;
+    document.querySelectorAll('[data-nav]').forEach(link => {
+      if (link.dataset.nav === active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
   }
   let libraryCatalog;
   const player = createAudioPlayer({
@@ -856,6 +985,40 @@ async function initializeApp() {
     results: { section: $('spotify-search-results'), title: $('spotify-search-title'), status: $('spotify-search-status'), list: $('spotify-search-list') },
     collectionTitle: $('music-collection-title'), collectionCount: $('music-collection-count')
   });
+  mangaCatalog = createMangaExperience({
+    db, document, user: currentUser, notify, elements: {
+      provider: $('manga-provider'), language: $('manga-language'), previous: $('manga-previous'), next: $('manga-next'), page: $('manga-page'), moreBooks: $('manga-more-books'), source: $('manga-source'),
+      search: $('manga-search'), refresh: $('manga-refresh'), connection: $('komga-connection'), count: $('manga-count'),
+      setup: $('komga-setup'), setupMessage: $('komga-setup-message'), grid: $('manga-grid'), empty: $('manga-empty'), status: $('manga-status'),
+      seriesTemplate: $('manga-series-template'), bookTemplate: $('manga-book-template'), seriesDialog: $('manga-series-dialog'),
+      seriesClose: $('manga-series-close'), seriesCover: $('manga-series-cover'), seriesTitle: $('manga-series-title'),
+      seriesAuthor: $('manga-series-author'), seriesSummary: $('manga-series-summary'), books: $('manga-books'),
+      booksCount: $('manga-books-count'), booksStatus: $('manga-books-status'), readerDialog: $('manga-reader-dialog'),
+      readerClose: $('manga-reader-close'), readerFullscreen: $('manga-reader-fullscreen'), readerTitle: $('manga-reader-title'),
+      readerCounter: $('manga-reader-counter'), readerStage: $('manga-reader-stage'), readerImage: $('manga-reader-image'),
+      readerStatus: $('manga-reader-status'), readerPrevious: $('manga-reader-prev'), readerNext: $('manga-reader-next'),
+      showCatalog: $('manga-show-catalog'), showFavorites: $('manga-show-favorites'), showPlaylists: $('manga-show-playlists'), viewToggle: $('manga-view-toggle'),
+      playlistsDialog: $('manga-playlists-dialog'), playlistsClose: $('manga-playlists-close'), playlistForm: $('manga-playlist-form'), playlistName: $('manga-playlist-name'), playlistStatus: $('manga-playlist-status'), playlistsList: $('manga-playlists-list'), addPlaylist: $('manga-add-playlist'),
+      readerPrevChapter: $('manga-reader-prev-chapter'), readerNextChapter: $('manga-reader-next-chapter'), readerMode: $('manga-reader-mode'), zoomIn: $('manga-reader-zoom-in'), zoomOut: $('manga-reader-zoom-out'), readerContinuous: $('manga-reader-continuous'),
+      commentForm: $('manga-comment-form'), commentText: $('manga-comment-text'), commentsStatus: $('manga-comments-status'), commentsList: $('manga-comments-list')
+    }
+  });
+  const mangaDetail = createMangaDetailV2({
+    db, notify,
+    catalog: mangaCatalog,
+    elements: {
+      cover: $('manga-detail-cover'), placeholder: $('manga-detail-placeholder'), title: $('manga-detail-title'),
+      author: $('manga-detail-author'), summary: $('manga-detail-summary'),
+      infoStatus: $('manga-info-status'), infoGenres: $('manga-info-genres'), infoChapters: $('manga-info-chapters'), infoYear: $('manga-info-year'),
+      dataSource: $('manga-data-source'),
+      source: $('manga-detail-source'), count: $('manga-detail-books-count'), books: $('manga-detail-books'),
+      status: $('manga-detail-status'), more: $('manga-detail-more'), bookTemplate: $('manga-book-template'), viewMode: $('manga-view-mode'),
+      readingStatus: $('manga-reading-status'), favorite: $('manga-favorite'), editProgress: $('manga-edit-progress'), userProgress: $('manga-user-progress'),
+      progressDialog: $('manga-progress-dialog'), progressForm: $('manga-progress-form'), progressClose: $('manga-progress-close'),
+      progressCancel: $('manga-progress-cancel'), progressChapters: $('manga-progress-chapters'), progressVolumes: $('manga-progress-volumes'),
+      rating: $('manga-rating'), ratingSummary: $('manga-rating-summary'), like: $('manga-like'), dislike: $('manga-dislike'), addPlaylist: $('manga-add-playlist')
+    }
+  });
   libraryCatalog = createLibraryFeatures({
     username, user: currentUser, buttons: document.querySelectorAll('[data-track]'),
     rows: document.querySelectorAll('[data-music-row]'), allMusicItems: document.querySelectorAll('[data-music-item]'),
@@ -871,16 +1034,32 @@ async function initializeApp() {
       profileName: $('profile-name'), profileRole: $('profile-role'), profilePlan: $('profile-plan-detail'), compact: $('setting-compact'), showSources: $('setting-sources')
     }
   });
+  createAccountSettings({ db, dialog: $('profile-dialog'), button: $('profile-button'), user: currentUser, notify });
   createVideoViewer({
     button: $('player-fullscreen'), dialog: $('video-dialog'), stage: $('video-stage'), video: $('music-video'),
     closeButton: $('video-close'), heading: $('video-title'), errorLabel: $('video-error'), audio: $('vmz'),
     volume: $('player-volume'), player, notify, document
   });
   document.querySelectorAll('[data-logout]').forEach(button => { button.onclick = () => logout(player.stop); });
-  document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => switchTab(button.dataset.tab); });
   $('user-top-name').textContent = username;
   $('user-top-plan').textContent = 'Plano ' + currentUser.plan;
-  switchTab('movies');
+  const mangaRoute = location.pathname.match(/^\/mangas\/(komga|mangadex)\/([^/]+)$/);
+  if (mangaRoute) {
+    let mangaId;
+    try { mangaId = decodeURIComponent(mangaRoute[2]); }
+    catch { location.replace('/mangas'); return; }
+    switchTab('manga-detail');
+    mangaDetail.load(mangaRoute[1], mangaId);
+  } else if (location.pathname === '/mangas') {
+    document.title = 'Mangás | NEXUS';
+    switchTab('mangas');
+  } else if (location.pathname === '/musicas') {
+    document.title = 'Músicas | NEXUS';
+    switchTab('music');
+  } else {
+    document.title = 'Filmes e séries | NEXUS';
+    switchTab('movies');
+  }
 }
 
 function startApp() {
@@ -901,4 +1080,4 @@ if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp, { once: true });
   else startApp();
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = { ApiDB, createAudioPlayer, createVideoViewer, createMetadataCatalog, createOnlineCatalog, createLibraryFeatures };
+if (typeof module !== 'undefined' && module.exports) module.exports = { ApiDB, createAudioPlayer, createVideoViewer, createMetadataCatalog, createOnlineCatalog, createMangaCatalog: createMangaExperience, createMangaDetail: createMangaDetailV2, createLibraryFeatures };

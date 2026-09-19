@@ -14,8 +14,11 @@ const routes = new Map([
   ["/index.html", ["src/pages/index.html", "text/html; charset=utf-8"]],
   ["/login", ["src/pages/index.html", "text/html; charset=utf-8"]],
   ["/login.html", ["src/pages/index.html", "text/html; charset=utf-8"]],
-  ["/painel", ["src/pages/painel.html", "text/html; charset=utf-8"]],
-  ["/painel.html", ["src/pages/painel.html", "text/html; charset=utf-8"]],
+  ["/painel", ["src/pages/filmes.html", "text/html; charset=utf-8"]],
+  ["/painel.html", ["src/pages/filmes.html", "text/html; charset=utf-8"]],
+  ["/filmes", ["src/pages/filmes.html", "text/html; charset=utf-8"]],
+  ["/musicas", ["src/pages/musicas.html", "text/html; charset=utf-8"]],
+  ["/mangas", ["src/pages/mangas.html", "text/html; charset=utf-8"]],
   ["/admin", ["src/pages/admin.html", "text/html; charset=utf-8"]],
   ["/admin.html", ["src/pages/admin.html", "text/html; charset=utf-8"]],
   ["/main.js", ["src/main.js", "text/javascript; charset=utf-8"]],
@@ -58,7 +61,9 @@ function createServer(options = {}) {
       await serveAudio(request, response, pathname, path.join(__dirname, 'src/assets/songs'), { download });
       return;
     }
-    const route = routes.get(pathname);
+    const route = /^\/mangas\/(komga|mangadex)\/[^/]+$/.test(pathname)
+      ? ["src/pages/mangas.html", "text/html; charset=utf-8"]
+      : routes.get(pathname);
     if (!route) {
       response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
       response.end(request.method === "HEAD" ? undefined : "Página não encontrada.");

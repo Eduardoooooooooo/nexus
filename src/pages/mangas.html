@@ -16,11 +16,11 @@
       href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css"
     />
   </head>
-  <body class="m-0" data-page="user" data-section="movies">
+  <body class="m-0" data-page="user" data-section="mangas">
     <main id="app" class="user-shell">
       <header class="user-topbar">
         <div class="user-brand">
-          <span class="user-logo" aria-hidden="true"></span>
+          <span class="user-logo" aria-hidden="true">N</span>
           <div>
             <p>NEXUS</p>
             <span>Seu universo de entretenimento</span>
@@ -259,11 +259,11 @@
               <div>
                 <p class="user-eyebrow">BIBLIOTECA DE MANGÁS</p>
                 <h2>Mangás e quadrinhos</h2>
-                <p class="user-view-subtitle">Explore o MangaDex ou leia sua coleção local no NEXUS.</p>
+                <p class="user-view-subtitle">Descubra obras novas e continue suas leituras.</p>
               </div>
               <div class="manga-heading-actions">
-                <label><span class="sr-only">Fonte de mangás</span><select id="manga-provider"><option value="mangadex">MangaDex</option><option value="komga">Komga · Local</option></select></label>
-                <label><span class="sr-only">Idioma dos capítulos</span><select id="manga-language"><option value="pt-br">Português (Brasil)</option><option value="pt">Português</option><option value="en">Inglês</option><option value="es">Espanhol</option><option value="ja">Japonês</option></select></label>
+                <input id="manga-provider" type="hidden" value="mangadex" />
+                <input id="manga-language" type="hidden" value="pt-br" />
                 <label class="manga-search-field">
                   <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
                   <span class="sr-only">Buscar mangás</span>
@@ -273,6 +273,12 @@
                   <i class="ph ph-arrows-clockwise" aria-hidden="true"></i>
                 </button>
               </div>
+            </div>
+            <div class="manga-library-toolbar" aria-label="Catálogo de mangás">
+              <button id="manga-show-catalog" type="button" aria-pressed="true"><i class="ph ph-sparkle"></i> Adicionados recentemente</button>
+              <button id="manga-show-favorites" type="button" aria-pressed="false"><i class="ph ph-heart"></i> Favoritos</button>
+              <button id="manga-show-playlists" type="button" aria-pressed="false"><i class="ph ph-books"></i> Minhas listas</button>
+              <button id="manga-view-toggle" type="button" aria-label="Alternar visualização" title="Alternar grade ou lista"><i class="ph ph-list"></i></button>
             </div>
             <div class="manga-statusbar">
               <span id="komga-connection" class="komga-connection" data-state="loading" hidden><i class="ph ph-circle" aria-hidden="true"></i> Conectando ao MangaDex</span>
@@ -298,12 +304,11 @@
             id="manga-detail-view"
             data-view="manga-detail"
             hidden
-            class="nexus-scroll h-full overflow-y-auto p-6"
-          >
+            class="nexus-scroll h-full overflow-y-auto p-6">
             <a href="/mangas" class="manga-back"><i class="ph ph-arrow-left" aria-hidden="true"></i> Voltar ao catálogo</a>
             <div class="manga-detail-hero">
               <div class="manga-detail-cover-wrap">
-                <img id="manga-detail-cover" alt="" />
+                <img id="manga-detail-cover" alt=""/>
                 <span id="manga-detail-placeholder"><i class="ph ph-book-open-text" aria-hidden="true"></i></span>
               </div>
               <div class="manga-detail-copy">
@@ -331,6 +336,13 @@
                   <button id="manga-favorite" type="button" aria-pressed="false"><i class="ph ph-heart" aria-hidden="true"></i><span>Favoritar</span></button>
                   <button id="manga-edit-progress" type="button"><i class="ph ph-pencil-simple" aria-hidden="true"></i><span>Editar progresso</span></button>
                   <span id="manga-user-progress" class="manga-user-progress">0 capítulos · 0 volumes</span>
+                </div>
+                <div class="manga-community-panel">
+                  <fieldset id="manga-rating"><legend>Sua avaliação</legend><button type="button" data-rating="1" aria-label="1 estrela"><i class="ph ph-star"></i></button><button type="button" data-rating="2" aria-label="2 estrelas"><i class="ph ph-star"></i></button><button type="button" data-rating="3" aria-label="3 estrelas"><i class="ph ph-star"></i></button><button type="button" data-rating="4" aria-label="4 estrelas"><i class="ph ph-star"></i></button><button type="button" data-rating="5" aria-label="5 estrelas"><i class="ph ph-star"></i></button></fieldset>
+                  <span id="manga-rating-summary">Sem avaliações</span>
+                  <button id="manga-like" type="button" aria-pressed="false"><i class="ph ph-thumbs-up"></i> <span>0</span></button>
+                  <button id="manga-dislike" type="button" aria-pressed="false"><i class="ph ph-thumbs-down"></i> <span>0</span></button>
+                  <label><span class="sr-only">Adicionar à lista</span><select id="manga-add-playlist"><option value="">Adicionar à lista…</option></select></label>
                 </div>
                 <a id="manga-detail-source" class="manga-detail-source" target="_blank" rel="noopener noreferrer" hidden><i class="ph ph-arrow-square-out" aria-hidden="true"></i> Abrir na fonte</a>
               </div>
@@ -730,7 +742,13 @@
       </form>
     </dialog>
 
-    <!-- Leitor do Komga -->
+    <dialog id="manga-playlists-dialog" class="user-dialog manga-playlists-dialog" aria-labelledby="manga-playlists-title">
+      <div class="dialog-heading"><div><p class="user-eyebrow">BIBLIOTECA</p><h2 id="manga-playlists-title">Minhas listas</h2></div><button id="manga-playlists-close" type="button" aria-label="Fechar"><i class="ph ph-x"></i></button></div>
+      <form id="manga-playlist-form" class="manga-inline-form"><input id="manga-playlist-name" required maxlength="60" placeholder="Nome da nova lista" /><button type="submit">Criar lista</button></form>
+      <p id="manga-playlist-status" role="status"></p><div id="manga-playlists-list" class="manga-playlists-list"></div>
+    </dialog>
+
+    <!-- Leitor -->
     <dialog id="manga-reader-dialog" class="manga-reader-dialog" aria-labelledby="manga-reader-title">
       <div class="manga-reader-bar">
         <div>
@@ -738,16 +756,23 @@
           <span id="manga-reader-counter">0 / 0</span>
         </div>
         <div class="manga-reader-actions">
+          <button id="manga-reader-prev-chapter" type="button" aria-label="Capítulo anterior"><i class="ph ph-skip-back"></i></button>
           <button id="manga-reader-prev" type="button" aria-label="Página anterior"><i class="ph ph-caret-left"></i></button>
           <button id="manga-reader-next" type="button" aria-label="Próxima página"><i class="ph ph-caret-right"></i></button>
+          <button id="manga-reader-next-chapter" type="button" aria-label="Próximo capítulo"><i class="ph ph-skip-forward"></i></button>
+          <button id="manga-reader-mode" type="button" aria-label="Alternar modo de leitura" title="Alternar páginas ou rolagem"><i class="ph ph-rows"></i></button>
+          <button id="manga-reader-zoom-out" type="button" aria-label="Diminuir zoom"><i class="ph ph-minus"></i></button>
+          <button id="manga-reader-zoom-in" type="button" aria-label="Aumentar zoom"><i class="ph ph-plus"></i></button>
           <button id="manga-reader-fullscreen" type="button" aria-label="Tela cheia"><i class="ph ph-corners-out"></i></button>
           <button id="manga-reader-close" type="button" aria-label="Fechar leitor"><i class="ph ph-x"></i></button>
         </div>
       </div>
       <div id="manga-reader-stage" class="manga-reader-stage">
         <img id="manga-reader-image" alt="Página do mangá" />
+        <div id="manga-reader-continuous" class="manga-reader-continuous" hidden></div>
         <p id="manga-reader-status" role="status"></p>
       </div>
+      <section class="manga-comments" aria-labelledby="manga-comments-title"><h3 id="manga-comments-title">Comentários do capítulo</h3><form id="manga-comment-form"><textarea id="manga-comment-text" maxlength="1000" required placeholder="Compartilhe uma opinião sobre este capítulo"></textarea><button type="submit">Publicar</button></form><p id="manga-comments-status" role="status"></p><div id="manga-comments-list"></div></section>
     </dialog>
 
     <!--Modelos -->

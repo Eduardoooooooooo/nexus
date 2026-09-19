@@ -1,4 +1,7 @@
 data/
 .env
-assets/
+src/assets/
 .vscode/
+komga/config/
+komga/library/
+komga/runtime/

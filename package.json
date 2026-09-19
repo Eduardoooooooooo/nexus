@@ -4,7 +4,9 @@
   "private": true,
   "description": "NEXUS com servidor local Node.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test scripts/*.test.js",
+    "komga:start": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-komga.ps1"
   },
   "engines": {
     "node": ">=24.0.0"
