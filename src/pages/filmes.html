@@ -308,36 +308,16 @@
           >
             <a href="/mangas" class="manga-back"><i class="ph ph-arrow-left" aria-hidden="true"></i> Voltar ao catálogo</a>
             <div class="manga-detail-hero">
-              <div class="manga-detail-cover-wrap">
-                <img id="manga-detail-cover" alt="" />
-                <span id="manga-detail-placeholder"><i class="ph ph-book-open-text" aria-hidden="true"></i></span>
-              </div>
+              <div class="manga-detail-cover-wrap"><img id="manga-detail-cover" alt="" /><span id="manga-detail-placeholder"><i class="ph ph-book-open-text" aria-hidden="true"></i></span></div>
               <div class="manga-detail-copy">
                 <div class="manga-detail-label"><p class="user-eyebrow">DETALHES DA OBRA</p><span id="manga-data-source" hidden><i class="ph ph-database" aria-hidden="true"></i> Dados complementares: Jikan</span></div>
-                <h2 id="manga-detail-title">Carregando mangá…</h2>
-                <p id="manga-detail-author" class="manga-series-author"></p>
-                <div class="manga-detail-meta" aria-label="Informações da obra">
-                  <div><span>Status</span><strong id="manga-info-status">—</strong></div>
-                  <div><span>Gêneros</span><strong id="manga-info-genres">—</strong></div>
-                  <div><span>Capítulos</span><strong id="manga-info-chapters">—</strong></div>
-                  <div><span>Lançamento</span><strong id="manga-info-year">—</strong></div>
-                </div>
+                <h2 id="manga-detail-title">Carregando mangá…</h2><p id="manga-detail-author" class="manga-series-author"></p>
+                <div class="manga-detail-meta" aria-label="Informações da obra"><span class="manga-meta-status"><strong id="manga-info-status">—</strong></span><span class="manga-meta-separator" aria-hidden="true">•</span><span><strong id="manga-info-year">—</strong></span><span class="manga-meta-separator" aria-hidden="true">•</span><span><strong id="manga-info-chapters">—</strong> capítulos</span></div>
+                <div class="manga-detail-genres-wrap" aria-label="Gêneros"><span class="manga-section-label">GÊNEROS</span><div id="manga-info-genres" class="manga-detail-genres"></div></div>
                 <p id="manga-detail-summary" class="manga-detail-summary"></p>
-                <div class="manga-personal-panel">
-                  <label>
-                    <span>Meu status</span>
-                    <select id="manga-reading-status">
-                      <option value="planned">Planejo ler</option>
-                      <option value="reading">Lendo</option>
-                      <option value="completed">Completo</option>
-                      <option value="paused">Pausado</option>
-                      <option value="dropped">Dropado</option>
-                    </select>
-                  </label>
-                  <button id="manga-favorite" type="button" aria-pressed="false"><i class="ph ph-heart" aria-hidden="true"></i><span>Favoritar</span></button>
-                  <button id="manga-edit-progress" type="button"><i class="ph ph-pencil-simple" aria-hidden="true"></i><span>Editar progresso</span></button>
-                  <span id="manga-user-progress" class="manga-user-progress">0 capítulos · 0 volumes</span>
-                </div>
+                <section class="manga-personal-panel" aria-labelledby="manga-reading-heading"><div class="manga-reading-heading"><p class="user-eyebrow" id="manga-reading-heading">MINHA LEITURA</p><div class="manga-reading-actions"><label><span>Status</span><select id="manga-reading-status"><option value="planned">Planejo ler</option><option value="reading">Lendo</option><option value="completed">Completo</option><option value="paused">Pausado</option><option value="dropped">Dropado</option></select></label><button id="manga-favorite" type="button" aria-pressed="false"><i class="ph ph-heart" aria-hidden="true"></i><span>Favoritar</span></button></div></div>
+                  <div class="manga-progress-control"><span class="manga-section-label">PROGRESSO</span><div class="manga-progress-counter"><button id="manga-progress-minus" type="button" aria-label="Diminuir capítulos lidos">−</button><strong><span id="manga-progress-chapters-current">0</span> / <span id="manga-progress-chapters-total">—</span> capítulos</strong><button id="manga-progress-plus" type="button" aria-label="Aumentar capítulos lidos">+</button></div><span id="manga-user-progress" class="manga-user-progress">0 capítulos · 0 volumes</span><div id="manga-progress-bar" class="manga-progress-bar" role="progressbar" aria-label="Progresso de leitura" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><span></span></div></div><button id="manga-edit-progress" class="manga-edit-progress" type="button"><i class="ph ph-pencil-simple" aria-hidden="true"></i><span>Editar progresso detalhado</span></button></section>
+                <div class="manga-community-panel"><div class="manga-community-rating"><span class="manga-section-label">AVALIAÇÃO DA COMUNIDADE</span><strong id="manga-community-score">—</strong><span id="manga-rating-summary">Sem avaliações</span></div><fieldset id="manga-rating"><legend>SUA AVALIAÇÃO</legend><div class="manga-rating-stars"><button type="button" data-rating="1" aria-label="1 estrela"><i class="ph ph-star"></i></button><button type="button" data-rating="2" aria-label="2 estrelas"><i class="ph ph-star"></i></button><button type="button" data-rating="3" aria-label="3 estrelas"><i class="ph ph-star"></i></button><button type="button" data-rating="4" aria-label="4 estrelas"><i class="ph ph-star"></i></button><button type="button" data-rating="5" aria-label="5 estrelas"><i class="ph ph-star"></i></button></div></fieldset><div class="manga-community-actions"><button id="manga-like" type="button" aria-pressed="false"><i class="ph ph-thumbs-up" aria-hidden="true"></i> <span>0</span></button><button id="manga-dislike" type="button" aria-pressed="false"><i class="ph ph-thumbs-down" aria-hidden="true"></i> <span>0</span></button><label><span class="sr-only">Adicionar à lista</span><select id="manga-add-playlist"><option value="">Adicionar à lista…</option></select></label></div></div>
                 <a id="manga-detail-source" class="manga-detail-source" target="_blank" rel="noopener noreferrer" hidden><i class="ph ph-arrow-square-out" aria-hidden="true"></i> Abrir na fonte</a>
               </div>
             </div>
