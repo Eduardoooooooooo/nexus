@@ -19,6 +19,7 @@ const routes = new Map([
   ["/filmes", ["src/pages/filmes.html", "text/html; charset=utf-8"]],
   ["/musicas", ["src/pages/musicas.html", "text/html; charset=utf-8"]],
   ["/mangas", ["src/pages/mangas.html", "text/html; charset=utf-8"]],
+  ["/perfil", ["src/pages/mangas.html", "text/html; charset=utf-8"]],
   ["/admin", ["src/pages/admin.html", "text/html; charset=utf-8"]],
   ["/admin.html", ["src/pages/admin.html", "text/html; charset=utf-8"]],
   ["/main.js", ["src/main.js", "text/javascript; charset=utf-8"]],
@@ -26,7 +27,17 @@ const routes = new Map([
   ["/styles.css", ["src/styles/index.css", "text/css; charset=utf-8"]],
   ["/styles/index.css", ["src/styles/index.css", "text/css; charset=utf-8"]],
   ["/styles/admin.css", ["src/styles/admin.css", "text/css; charset=utf-8"]],
-  ["/styles/painel.css", ["src/styles/painel.css", "text/css; charset=utf-8"]],
+  ["/styles/global.css", ["src/styles/global.css", "text/css; charset=utf-8"]],
+  ["/styles/components/layout.css", ["src/styles/components/layout.css", "text/css; charset=utf-8"]],
+  ["/styles/components/header.css", ["src/styles/components/header.css", "text/css; charset=utf-8"]],
+  ["/styles/components/sidebar.css", ["src/styles/components/sidebar.css", "text/css; charset=utf-8"]],
+  ["/styles/components/controls.css", ["src/styles/components/controls.css", "text/css; charset=utf-8"]],
+  ["/styles/filmes.css", ["src/styles/filmes.css", "text/css; charset=utf-8"]],
+  ["/styles/mangas.css", ["src/styles/mangas.css", "text/css; charset=utf-8"]],
+  ["/styles/components/account.css", ["src/styles/components/account.css", "text/css; charset=utf-8"]],
+  ["/styles/musicas.css", ["src/styles/musicas.css", "text/css; charset=utf-8"]],
+  ["/styles/components/dialogs.css", ["src/styles/components/dialogs.css", "text/css; charset=utf-8"]],
+  ["/styles/perfil.css", ["src/styles/perfil.css", "text/css; charset=utf-8"]],
 ]);
 
 function createServer(options = {}) {

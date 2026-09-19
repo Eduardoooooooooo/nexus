@@ -8,7 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <title>NEXUS | Entretenimento</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="/styles/painel.css" />
+    <link rel="stylesheet" href="/styles/global.css" />
+    <link rel="stylesheet" href="/styles/components/layout.css" />
+    <link rel="stylesheet" href="/styles/components/header.css" />
+    <link rel="stylesheet" href="/styles/components/controls.css" />
+    <link rel="stylesheet" href="/styles/mangas.css" />
+    <link rel="stylesheet" href="/styles/perfil.css" />
+    <link rel="stylesheet" href="/styles/components/account.css" />
+    <link rel="stylesheet" href="/styles/components/dialogs.css" />
     <script src="/main.js" defer></script>
     <link
       rel="stylesheet"
@@ -20,7 +27,7 @@
     <main id="app" class="user-shell">
       <header class="user-topbar">
         <div class="user-brand">
-          <span class="user-logo" aria-hidden="true">N</span>
+          <span class="user-logo" aria-hidden="true"></span>
           <div>
             <p>NEXUS</p>
             <span>Seu universo de entretenimento</span>
@@ -253,8 +260,14 @@
             id="mangas-view"
             data-view="mangas"
             hidden
-            class="nexus-scroll h-full overflow-y-auto p-6"
-          >
+            class="nexus-scroll h-full overflow-y-auto p-6">
+            <section id="manga-hero" class="manga-hero" aria-label="Mangás adicionados recentemente" aria-roledescription="carrossel">
+              <div id="manga-hero-track" class="manga-hero-track" aria-live="polite"></div>
+              <button id="manga-hero-previous" class="manga-hero-arrow previous" type="button" aria-label="Destaque anterior"><i class="ph ph-caret-left"></i></button>
+              <button id="manga-hero-next" class="manga-hero-arrow next" type="button" aria-label="Próximo destaque"><i class="ph ph-caret-right"></i></button>
+              <div id="manga-hero-dots" class="manga-hero-dots" aria-label="Escolher destaque"></div>
+              <p id="manga-hero-status" class="manga-hero-status" role="status">Carregando destaques…</p>
+            </section>
             <div class="manga-heading">
               <div>
                 <p class="user-eyebrow">BIBLIOTECA DE MANGÁS</p>
@@ -357,6 +370,27 @@
             <div id="manga-detail-books" class="manga-detail-books"></div>
             <button id="manga-detail-more" class="manga-more" type="button" hidden>Carregar mais capítulos</button>
             <p id="manga-detail-status" class="catalog-status" role="status"></p>
+          </section>
+          <!-- Perfil -->
+          <section id="profile-view" data-view="profile" hidden class="nexus-scroll h-full overflow-y-auto p-6">
+            <div class="profile-page-shell">
+              <a href="/mangas" class="manga-back"><i class="ph ph-arrow-left"></i> Voltar</a>
+              <article class="profile-page-card" aria-labelledby="profile-page-name">
+                <div class="profile-page-avatar"><img id="profile-page-avatar" hidden alt="Foto do perfil" /><span id="profile-page-avatar-placeholder"><i class="ph ph-user"></i></span></div>
+                <div class="profile-page-copy"><p class="user-eyebrow">MEU PERFIL</p><h1 id="profile-page-name">Perfil</h1><p id="profile-page-username"></p><p id="profile-page-bio">Nenhuma biografia cadastrada.</p><p id="profile-page-created"></p></div>
+                <div class="profile-page-actions"><button id="profile-page-edit" type="button"><i class="ph ph-pencil-simple"></i> Editar perfil</button><button id="profile-page-settings" type="button"><i class="ph ph-gear"></i> Configurações</button></div>
+              </article>
+              <section class="profile-page-stats" aria-label="Estatísticas de leitura"><article><i class="ph ph-heart"></i><strong id="profile-stat-favorites">0</strong><span>Favoritos</span></article><article><i class="ph ph-books"></i><strong id="profile-stat-playlists">0</strong><span>Listas</span></article><article><i class="ph ph-book-open"></i><strong id="profile-stat-reading">0</strong><span>Leituras iniciadas</span></article></section>
+              <form id="profile-page-form" class="profile-page-form" hidden>
+                <div class="profile-form-heading"><div><p class="user-eyebrow">EDIÇÃO</p><h2>Editar perfil</h2></div><button id="profile-page-cancel" type="button">Cancelar</button></div>
+                <div class="profile-avatar-editor"><img id="profile-page-preview" hidden alt="Prévia da nova foto" /><label>Foto de perfil <input id="profile-page-file" type="file" accept="image/png,image/jpeg,image/webp" /></label></div>
+                <label>Nome de exibição <input id="profile-page-display-name" maxlength="80" required /></label>
+                <label>Biografia <textarea id="profile-page-edit-bio" maxlength="500"></textarea></label>
+                <p id="profile-page-save-status" role="status"></p>
+                <button id="profile-page-save" type="submit"><i class="ph ph-floppy-disk"></i> Salvar alterações</button>
+              </form>
+              <section class="profile-favorites" aria-labelledby="profile-favorites-title"><div><p class="user-eyebrow">BIBLIOTECA</p><h2 id="profile-favorites-title">Mangás favoritos</h2></div><div id="profile-favorites-grid" class="manga-grid"></div><p id="profile-favorites-empty" hidden>Nenhum mangá favoritado.</p></section>
+            </div>
           </section>
           <!-- Músicas -->
           <section
@@ -762,6 +796,7 @@
           <button id="manga-reader-next-chapter" type="button" aria-label="Próximo capítulo"><i class="ph ph-skip-forward"></i></button>
           <button id="manga-reader-mode" type="button" aria-label="Alternar modo de leitura" title="Alternar páginas ou rolagem"><i class="ph ph-rows"></i></button>
           <button id="manga-reader-zoom-out" type="button" aria-label="Diminuir zoom"><i class="ph ph-minus"></i></button>
+          <button id="manga-reader-zoom-reset" type="button" aria-label="Restaurar zoom" title="Restaurar zoom"><i class="ph ph-arrows-in"></i></button>
           <button id="manga-reader-zoom-in" type="button" aria-label="Aumentar zoom"><i class="ph ph-plus"></i></button>
           <button id="manga-reader-fullscreen" type="button" aria-label="Tela cheia"><i class="ph ph-corners-out"></i></button>
           <button id="manga-reader-close" type="button" aria-label="Fechar leitor"><i class="ph ph-x"></i></button>
