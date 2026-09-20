@@ -1,12 +1,19 @@
 "use strict";
 
+const { createCache } = require('./cache');
+
 const MAX_IMAGE_BYTES = 32 * 1024 * 1024;
 
 function serviceError(status, message, code, upstreamStatus) {
   return Object.assign(new Error(message), { status, code, upstreamStatus });
 }
 
-function createKomga({ env = process.env, fetchImpl = fetch } = {}) {
+function createKomga({ env = process.env, fetchImpl = fetch, now = Date.now } = {}) {
+  const cache = createCache({ now });
+  const images = createCache({
+    now, maxEntries: 120, maxBytes: 64 * 1024 * 1024,
+    sizeOf: image => image.buffer.length
+  });
   const rawUrl = env.KOMGA_URL?.trim();
   const username = env.KOMGA_USERNAME?.trim();
   const password = env.KOMGA_PASSWORD?.trim();
@@ -56,9 +63,13 @@ function createKomga({ env = process.env, fetchImpl = fetch } = {}) {
   }
 
   async function json(pathname, options) {
-    const response = await upstream(pathname, options);
-    try { return await response.json(); }
-    catch { throw serviceError(502, 'O Komga retornou uma resposta inválida.', 'KOMGA_RESPONSE'); }
+    const load = async () => {
+      const response = await upstream(pathname, options);
+      try { return await response.json(); }
+      catch { throw serviceError(502, 'O Komga retornou uma resposta inválida.', 'KOMGA_RESPONSE'); }
+    };
+    if (options?.method && options.method !== 'GET') return load();
+    return cache.getOrLoad(pathname, load, { ttl: 60000 });
   }
 
   function normalizePage(data) {
@@ -138,7 +149,10 @@ function createKomga({ env = process.env, fetchImpl = fetch } = {}) {
     }));
   }
 
-  async function image(pathname) {
+  function image(pathname) {
+    return images.getOrLoad(pathname, () => fetchImage(pathname), { ttl: 5 * 60000 });
+  }
+  async function fetchImage(pathname) {
     const response = await upstream(pathname, { headers: { Accept: 'image/avif,image/webp,image/png,image/jpeg,image/*' } });
     const type = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
     if (!type?.startsWith('image/')) throw serviceError(502, 'O Komga não retornou uma imagem válida.', 'KOMGA_RESPONSE');

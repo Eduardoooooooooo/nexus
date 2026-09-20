@@ -1,5 +1,7 @@
 "use strict";
 
+const { createCache } = require('./cache');
+
 const CACHE_TTL = 6 * 60 * 60 * 1000;
 
 function normalize(value) {
@@ -19,8 +21,8 @@ function similarity(query, candidate) {
   return intersection / new Set([...left, ...right]).size;
 }
 
-function createJikan({ fetchImpl = fetch } = {}) {
-  const cache = new Map();
+function createJikan({ fetchImpl = fetch, now = Date.now } = {}) {
+  const cache = createCache({ maxEntries: 300, now });
   let queue = Promise.resolve();
   let nextRequest = 0;
 
@@ -28,9 +30,12 @@ function createJikan({ fetchImpl = fetch } = {}) {
     title = String(title || '').trim().slice(0, 120);
     if (!title) return null;
     const cacheKey = normalize(title);
-    const cached = cache.get(cacheKey);
-    if (cached?.expires > Date.now()) return cached.value;
+    return cache.getOrLoad(cacheKey, () => fetchManga(title), {
+      ttl: value => value === null ? 30000 : CACHE_TTL
+    });
+  }
 
+  async function fetchManga(title) {
     const slot = queue.then(async () => {
       await new Promise(resolve => setTimeout(resolve, Math.max(0, nextRequest - Date.now())));
       nextRequest = Date.now() + 450;
@@ -62,8 +67,6 @@ function createJikan({ fetchImpl = fetch } = {}) {
         authors: (best.authors || []).map(item => item?.name).filter(Boolean), synopsis: best.synopsis || '',
         score: Number(best.score) || null, url: best.url || '', matchScore: bestScore
       };
-      cache.set(cacheKey, { value: manga, expires: Date.now() + CACHE_TTL });
-      if (cache.size > 300) cache.delete(cache.keys().next().value);
       return manga;
     } catch {
       return null;

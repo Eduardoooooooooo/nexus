@@ -1,7 +1,7 @@
 "use strict";
 
 const http = require("node:http");
-const fs = require("node:fs/promises");
+const { createStaticAssets } = require("./src/server/static-assets");
 const path = require("node:path");
 try { process.loadEnvFile(path.join(__dirname, '.env')); }
 catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -42,6 +42,7 @@ const routes = new Map([
 
 function createServer(options = {}) {
   const api = createApi(options);
+  const serveStatic = createStaticAssets({ root: __dirname });
   const server = http.createServer(async (request, response) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
     let pathname;
@@ -81,13 +82,7 @@ function createServer(options = {}) {
       return;
     }
     try {
-      const content = await fs.readFile(path.join(__dirname, route[0]));
-      response.writeHead(200, {
-        "Content-Type": route[1],
-        "Content-Length": content.length,
-        "Cache-Control": "no-store"
-      });
-      response.end(request.method === "HEAD" ? undefined : content);
+      await serveStatic(request, response, route[0], route[1]);
     } catch (error) {
       console.error("Não foi possível carregar o arquivo:", error.message);
       response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });

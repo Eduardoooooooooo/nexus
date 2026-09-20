@@ -1,5 +1,7 @@
 'use strict';
 
+const { createCache } = require('./cache');
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const error = (status, message) => Object.assign(new Error(message), { status });
 const id = value => { if (!UUID.test(value)) throw error(400, 'Identificador de mangá inválido.'); return value; };
@@ -7,8 +9,12 @@ const integer = (value, fallback, max) => Math.min(max, Math.max(0, Math.floor(N
 const language = value => ['pt-br', 'pt', 'en', 'es', 'ja'].includes(value) ? value : 'pt-br';
 const localized = value => value?.['pt-br'] || value?.pt || value?.en || Object.values(value || {})[0] || '';
 
-function createMangaDex({ fetchImpl = fetch } = {}) {
-  const cache = new Map();
+function createMangaDex({ fetchImpl = fetch, now = Date.now } = {}) {
+  const cache = createCache({ now });
+  const images = createCache({
+    now, maxEntries: 160, maxBytes: 64 * 1024 * 1024,
+    sizeOf: image => image.buffer.length
+  });
   let queue = Promise.resolve();
   let nextRequest = 0;
   async function request(url, image = false) {
@@ -33,15 +39,21 @@ function createMangaDex({ fetchImpl = fetch } = {}) {
     return response;
   }
   async function json(path) {
-    const existing = cache.get(path);
-    if (existing?.expires > Date.now()) return existing.promise;
-    const promise = request('https://api.mangadex.org' + path).then(response => response.json()).catch(cause => {
-      cache.delete(path);
-      throw cause.status ? cause : error(502, 'Resposta inválida do MangaDex.');
-    });
-    cache.set(path, { promise, expires: Date.now() + 60000 });
-    if (cache.size > 200) cache.delete(cache.keys().next().value);
-    return promise;
+    // Endereços de páginas expiram antes dos metadados do catálogo.
+    const ttl = path.startsWith('/at-home/') ? 60000 : 5 * 60000;
+    return cache.getOrLoad(path, () =>
+      request('https://api.mangadex.org' + path).then(response => response.json()).then(data => {
+        // Alimenta detalhes apenas com respostas novas, sem estender a validade a cada acesso.
+        if (path.startsWith('/manga?')) {
+          for (const item of data.data || []) {
+            cache.set(`/manga/${item.id}?includes[]=cover_art`, { data: item }, ttl);
+            cache.set(`/manga/${item.id}?includes[]=author&includes[]=cover_art`, { data: item }, ttl);
+          }
+        }
+        return data;
+      }).catch(cause => {
+        throw cause.status ? cause : error(502, 'Resposta inválida do MangaDex.');
+      }), { ttl });
   }
   function seriesItem(item) {
     const a = item.attributes || {};
@@ -59,10 +71,6 @@ function createMangaDex({ fetchImpl = fetch } = {}) {
     if (String(search).trim()) p.set('title', String(search).trim().slice(0, 120));
     p.append('includes[]', 'cover_art');
     const result = await json('/manga?' + p);
-    for (const item of result.data || []) {
-      cache.set(`/manga/${item.id}?includes[]=cover_art`, { promise: Promise.resolve({ data: item }), expires: Date.now() + 60000 });
-      if (cache.size > 200) cache.delete(cache.keys().next().value);
-    }
     return { content: (result.data || []).map(seriesItem), totalElements: result.total || 0, last: offset + size >= Math.min(result.total || 0, Math.floor(10000 / size) * size) };
   }
   async function getSeries(seriesId) {
@@ -94,7 +102,10 @@ function createMangaDex({ fetchImpl = fetch } = {}) {
     const data = await chapter(chapterId);
     return data.chapter.data.map((_, i) => ({ number: i + 1 }));
   }
-  async function imageBuffer(url) {
+  function imageBuffer(url) {
+    return images.getOrLoad(url, () => fetchImage(url), { ttl: 30 * 60000 });
+  }
+  async function fetchImage(url) {
     const response = await request(url, true);
     const type = response.headers.get('content-type')?.split(';')[0];
     if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'].includes(type)) throw error(502, 'Imagem inválida do MangaDex.');
