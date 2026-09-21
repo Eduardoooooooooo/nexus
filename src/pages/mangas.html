@@ -757,30 +757,32 @@
 
     <!-- Leitor -->
     <dialog id="manga-reader-dialog" class="manga-reader-dialog" aria-labelledby="manga-reader-title">
-      <div class="manga-reader-bar">
-        <div>
-          <strong id="manga-reader-title">Leitor</strong>
-          <span id="manga-reader-counter">0 / 0</span>
+      <div class="manga-reader-shell">
+        <div class="manga-reader-bar">
+          <div>
+            <strong id="manga-reader-title">Leitor</strong>
+            <span id="manga-reader-counter">0 / 0</span>
+          </div>
+          <div class="manga-reader-actions">
+            <button id="manga-reader-prev-chapter" type="button" aria-label="Capítulo anterior"><i class="ph ph-skip-back"></i></button>
+            <button id="manga-reader-prev" type="button" aria-label="Página anterior"><i class="ph ph-caret-left"></i></button>
+            <button id="manga-reader-next" type="button" aria-label="Próxima página"><i class="ph ph-caret-right"></i></button>
+            <button id="manga-reader-next-chapter" type="button" aria-label="Próximo capítulo"><i class="ph ph-skip-forward"></i></button>
+            <button id="manga-reader-mode" type="button" aria-label="Alternar modo de leitura" title="Alternar páginas ou rolagem"><i class="ph ph-rows"></i></button>
+            <button id="manga-reader-zoom-out" type="button" aria-label="Diminuir zoom"><i class="ph ph-minus"></i></button>
+            <button id="manga-reader-zoom-reset" type="button" aria-label="Restaurar zoom" title="Restaurar zoom"><i class="ph ph-arrows-in"></i></button>
+            <button id="manga-reader-zoom-in" type="button" aria-label="Aumentar zoom"><i class="ph ph-plus"></i></button>
+            <button id="manga-reader-fullscreen" type="button" aria-label="Tela cheia"><i class="ph ph-corners-out"></i></button>
+            <button id="manga-reader-close" type="button" aria-label="Fechar leitor"><i class="ph ph-x"></i></button>
+          </div>
         </div>
-        <div class="manga-reader-actions">
-          <button id="manga-reader-prev-chapter" type="button" aria-label="Capítulo anterior"><i class="ph ph-skip-back"></i></button>
-          <button id="manga-reader-prev" type="button" aria-label="Página anterior"><i class="ph ph-caret-left"></i></button>
-          <button id="manga-reader-next" type="button" aria-label="Próxima página"><i class="ph ph-caret-right"></i></button>
-          <button id="manga-reader-next-chapter" type="button" aria-label="Próximo capítulo"><i class="ph ph-skip-forward"></i></button>
-          <button id="manga-reader-mode" type="button" aria-label="Alternar modo de leitura" title="Alternar páginas ou rolagem"><i class="ph ph-rows"></i></button>
-          <button id="manga-reader-zoom-out" type="button" aria-label="Diminuir zoom"><i class="ph ph-minus"></i></button>
-          <button id="manga-reader-zoom-reset" type="button" aria-label="Restaurar zoom" title="Restaurar zoom"><i class="ph ph-arrows-in"></i></button>
-          <button id="manga-reader-zoom-in" type="button" aria-label="Aumentar zoom"><i class="ph ph-plus"></i></button>
-          <button id="manga-reader-fullscreen" type="button" aria-label="Tela cheia"><i class="ph ph-corners-out"></i></button>
-          <button id="manga-reader-close" type="button" aria-label="Fechar leitor"><i class="ph ph-x"></i></button>
+        <div id="manga-reader-stage" class="manga-reader-stage" tabindex="0" role="region" aria-label="Páginas do capítulo">
+          <img id="manga-reader-image" alt="Página do mangá" />
+          <div id="manga-reader-continuous" class="manga-reader-continuous" hidden></div>
+          <p id="manga-reader-status" role="status"></p>
+          <section class="manga-comments" aria-labelledby="manga-comments-title"><h3 id="manga-comments-title">Comentários do capítulo</h3><form id="manga-comment-form"><textarea id="manga-comment-text" maxlength="1000" required placeholder="Compartilhe uma opinião sobre este capítulo"></textarea><button type="submit">Publicar</button></form><p id="manga-comments-status" role="status"></p><div id="manga-comments-list"></div></section>
         </div>
       </div>
-      <div id="manga-reader-stage" class="manga-reader-stage">
-        <img id="manga-reader-image" alt="Página do mangá" />
-        <div id="manga-reader-continuous" class="manga-reader-continuous" hidden></div>
-        <p id="manga-reader-status" role="status"></p>
-      </div>
-      <section class="manga-comments" aria-labelledby="manga-comments-title"><h3 id="manga-comments-title">Comentários do capítulo</h3><form id="manga-comment-form"><textarea id="manga-comment-text" maxlength="1000" required placeholder="Compartilhe uma opinião sobre este capítulo"></textarea><button type="submit">Publicar</button></form><p id="manga-comments-status" role="status"></p><div id="manga-comments-list"></div></section>
     </dialog>
 
     <!--Modelos -->

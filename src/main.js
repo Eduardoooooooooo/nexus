@@ -688,15 +688,82 @@ function clampReaderZoom(value) {
 }
 
 function isReaderExpanded(fullscreenElement, readerDialog, expandedFallback = false) {
-  return fullscreenElement === readerDialog || Boolean(expandedFallback);
+  return Boolean(readerDialog && fullscreenElement === readerDialog) || Boolean(expandedFallback);
+}
+
+
+function createReaderFullscreen({ doc, dialog, target, button, status, onResize = () => {} }) {
+  let fallback = false;
+  let busy = false;
+  const fallbackMessage = 'Tela cheia indisponível. O leitor foi expandido dentro da página.';
+
+  function sync() {
+    const active = isReaderExpanded(doc.fullscreenElement, target, fallback);
+    button.setAttribute('aria-pressed', String(active));
+    button.setAttribute('aria-label', active ? 'Sair da tela cheia' : 'Entrar em tela cheia');
+    button.title = active ? 'Sair da tela cheia' : 'Entrar em tela cheia';
+    button.innerHTML = `<i class="ph ph-corners-${active ? 'in' : 'out'}" aria-hidden="true"></i>`;
+    dialog.classList.toggle('reader-expanded', fallback);
+    onResize();
+  }
+
+  async function toggle() {
+    if (busy || !dialog.open) return;
+    busy = true;
+    button.disabled = true;
+    try {
+      if (doc.fullscreenElement === target) {
+        await doc.exitFullscreen();
+      } else if (fallback) {
+        fallback = false;
+        if (status.textContent === fallbackMessage) status.textContent = '';
+      } else {
+        try {
+          if (!target?.requestFullscreen) throw new Error('unsupported');
+          await target.requestFullscreen();
+        } catch {
+          if (dialog.open) {
+            fallback = true;
+            status.textContent = fallbackMessage;
+          }
+        }
+      }
+    } catch {
+      status.textContent = 'Não foi possível sair da tela cheia. Tente novamente ou pressione Escape.';
+    } finally {
+      busy = false;
+      button.disabled = false;
+      sync();
+    }
+  }
+
+  dialog.addEventListener('cancel', event => {
+    if (fallback || doc.fullscreenElement === target) {
+      event.preventDefault();
+      void toggle();
+    }
+  });
+  dialog.addEventListener('close', () => {
+    fallback = false;
+    if (status.textContent === fallbackMessage) status.textContent = '';
+    if (doc.fullscreenElement === target) {
+      doc.exitFullscreen().catch(() => {}).finally(sync);
+    }
+    sync();
+  });
+  doc.addEventListener('fullscreenchange', sync);
+  button.addEventListener('click', toggle);
+  sync();
+  return { toggle };
 }
 
 function createMangaExperience({ db, elements, document: doc, user, notify = () => {} }) {
-  const on = (node, event, handler) => node?.addEventListener(event, handler);
+  const on = (node, event, handler, options) => node?.addEventListener(event, handler, options);
   let provider = 'mangadex', catalogPage = 0, requestId = 0, catalogMode = 'catalog';
   let currentSeriesId = '', currentBook = null, chapterBooks = [], pages = [], pageIndex = 0;
   let readerMode = user.readerMode === 'continuous' ? 'continuous' : 'paged', zoom = 1;
   let progressTimer, touchStart = null, pinchStart = null, panStart = null;
+  let mousePan = null, suppressClickUntil = 0, continuousObserver = null;
   let heroItems = [], heroIndex = 0, heroTimer = null, heroTouchStart = null;
   const endpoint = () => `/api/${provider}`;
   const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -771,7 +838,11 @@ function createMangaExperience({ db, elements, document: doc, user, notify = () 
   function saveProgress(){clearTimeout(progressTimer);if(!currentBook)return;progressTimer=setTimeout(()=>db.request(progressUrl(),{method:'PUT',body:JSON.stringify({page:pageIndex+1,mode:readerMode})}).catch(()=>{}),300);}
   function pageUrl(page){return endpoint()+`/books/${encodeURIComponent(currentBook.id)}/pages/${page.number}`;}
   function applyZoom() {
-    const available=Math.max(280,elements.readerStage.clientWidth-40),base=Math.min(1100,available),width=Math.round(base*zoom);
+    if (!elements.readerDialog.open || !elements.readerStage.clientWidth) return;
+    const padding = doc.defaultView.getComputedStyle(elements.readerStage);
+    const available = Math.max(1, elements.readerStage.clientWidth - parseFloat(padding.paddingLeft) - parseFloat(padding.paddingRight));
+    const base = Math.min(1100, available), width = Math.round(base * zoom);
+    elements.readerStage.dataset.zoomed = String(width > available);
     elements.readerStage.style.setProperty('--reader-zoom',String(zoom));
     const targets=[elements.readerImage,...(elements.readerContinuous?[...elements.readerContinuous.querySelectorAll('img')]:[])];
     for(const image of targets){image.style.width=`${width}px`;image.style.maxWidth='none';image.style.marginInline=width<=available?'auto':'0';}
@@ -779,16 +850,18 @@ function createMangaExperience({ db, elements, document: doc, user, notify = () 
   }
   function setZoom(value){zoom=clampReaderZoom(value);applyZoom();}
   function showPage(index) {
-    if(!currentBook||!pages.length)return;pageIndex=Math.max(0,Math.min(pages.length-1,index));const page=pages[pageIndex];elements.readerImage.hidden=false;elements.readerImage.src=pageUrl(page);elements.readerCounter.textContent=`${pageIndex+1} / ${pages.length}`;elements.readerPrevious.disabled=pageIndex===0;elements.readerNext.disabled=pageIndex===pages.length-1;elements.readerStatus.textContent='';elements.readerStage.scrollTo({top:0,behavior:'instant'});applyZoom();saveProgress();
+    if(!currentBook||!pages.length)return;pageIndex=Math.max(0,Math.min(pages.length-1,index));const page=pages[pageIndex];elements.readerImage.hidden=false;elements.readerImage.src=pageUrl(page);elements.readerCounter.textContent=`${pageIndex+1} / ${pages.length}`;elements.readerPrevious.disabled=pageIndex===0;elements.readerNext.disabled=pageIndex===pages.length-1;elements.readerStatus.textContent='';elements.readerStage.scrollTo({top:0,left:0,behavior:'instant'});applyZoom();saveProgress();
   }
   function renderContinuous() {
+    continuousObserver?.disconnect();
     elements.readerImage.hidden=true;elements.readerContinuous.hidden=false;elements.readerContinuous.replaceChildren();
     pages.forEach((page,index)=>{const img=doc.createElement('img');img.loading=index<2?'eager':'lazy';img.alt=`Página ${index+1}`;img.src=pageUrl(page);img.dataset.index=index;elements.readerContinuous.append(img);});applyZoom();
-    const observer=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(visible){pageIndex=Number(visible.target.dataset.index);elements.readerCounter.textContent=`${pageIndex+1} / ${pages.length}`;saveProgress();}},{root:elements.readerStage,threshold:[.35,.7]});elements.readerContinuous.querySelectorAll('img').forEach(img=>observer.observe(img));
+    continuousObserver=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(visible){pageIndex=Number(visible.target.dataset.index);elements.readerCounter.textContent=`${pageIndex+1} / ${pages.length}`;saveProgress();}},{root:elements.readerStage,threshold:[.35,.7]});elements.readerContinuous.querySelectorAll('img').forEach(img=>continuousObserver.observe(img));
   }
   async function loadComments(){if(!elements.commentsList||!currentBook)return;try{const data=await db.request(`/api/manga/comments/${provider}/${encodeURIComponent(currentSeriesId)}/${encodeURIComponent(currentBook.id)}`);elements.commentsList.replaceChildren();for(const c of data.comments){const row=doc.createElement('article');const header=doc.createElement('strong');header.textContent=c.author;const text=doc.createElement('p');text.textContent=c.content;const actions=doc.createElement('div');if(c.own){const edit=doc.createElement('button');edit.type='button';edit.textContent='Editar';edit.onclick=async()=>{const content=prompt('Editar comentário',c.content)?.trim();if(!content)return;await db.request(`/api/manga/comments/${c.id}`,{method:'PUT',body:JSON.stringify({content})});loadComments();};const remove=doc.createElement('button');remove.type='button';remove.textContent='Excluir';remove.onclick=async()=>{await db.request(`/api/manga/comments/${c.id}`,{method:'DELETE'});loadComments();};actions.append(edit,remove);}else{const report=doc.createElement('button');report.type='button';report.textContent='Denunciar';report.onclick=async()=>{const reason=prompt('Motivo da denúncia')?.trim();if(!reason)return;await db.request(`/api/manga/comments/${c.id}/report`,{method:'POST',body:JSON.stringify({reason})});notify('Denúncia registrada.');};actions.append(report);}row.append(header,text,actions);elements.commentsList.append(row);}elements.commentsStatus.textContent=data.comments.length?'':'Ainda não há comentários.';}catch(error){elements.commentsStatus.textContent=error.message;}}
   async function openBook(book,books=chapterBooks,seriesId=currentSeriesId) {
-    currentBook=book;chapterBooks=books;currentSeriesId=seriesId;pageIndex=0;pages=[];zoom=1;elements.readerTitle.textContent=book.title;elements.readerCounter.textContent='0 / 0';elements.readerStatus.textContent='Preparando leitura…';elements.readerContinuous?.replaceChildren();if(!elements.readerDialog.open)elements.readerDialog.showModal();
+    continuousObserver?.disconnect();
+    currentBook=book;chapterBooks=books;currentSeriesId=seriesId;pageIndex=0;pages=[];zoom=1;elements.readerTitle.textContent=book.title;elements.readerCounter.textContent='0 / 0';elements.readerStatus.textContent='Preparando leitura…';elements.readerContinuous?.replaceChildren();if(!elements.readerDialog.open)elements.readerDialog.showModal();elements.readerImage.hidden=true;elements.readerStage.scrollTo({top:0,left:0});
     const index=chapterBooks.findIndex(item=>item.id===book.id);if(elements.readerPrevChapter)elements.readerPrevChapter.disabled=index<=0;if(elements.readerNextChapter)elements.readerNextChapter.disabled=index<0||index>=chapterBooks.length-1;
     try{const [result,saved]=await Promise.all([db.request(endpoint()+`/books/${encodeURIComponent(book.id)}/pages`),db.request(progressUrl())]);pages=result.pages||[];readerMode=saved.progress.mode==='continuous'?'continuous':'paged';pageIndex=Math.max(0,Math.min(pages.length-1,Number(saved.progress.page||1)-1));if(!pages.length){elements.readerStatus.textContent='Este capítulo não possui páginas disponíveis.';return;}if(readerMode==='continuous'){renderContinuous();setTimeout(()=>elements.readerContinuous.children[pageIndex]?.scrollIntoView({block:'start'}),0);}else{elements.readerContinuous.hidden=true;showPage(pageIndex);}elements.readerMode?.setAttribute('aria-pressed',String(readerMode==='continuous'));loadComments();}catch(error){elements.readerStatus.textContent=error.message;}
   }
@@ -799,17 +872,112 @@ function createMangaExperience({ db, elements, document: doc, user, notify = () 
   on(elements.hero,'touchstart',event=>{if(event.touches.length===1)heroTouchStart=event.touches[0].clientX;stopHeroTimer()},{passive:true});on(elements.hero,'touchend',event=>{if(heroTouchStart==null)return;const distance=event.changedTouches[0].clientX-heroTouchStart;heroTouchStart=null;if(Math.abs(distance)>45)showHero(heroIndex+(distance<0?1:-1),true)},{passive:true});
   on(elements.showCatalog,'click',()=>{catalogMode='catalog';catalogPage=0;load(true)});on(elements.showFavorites,'click',()=>{catalogMode='favorites';load(true)});on(elements.showPlaylists,'click',()=>loadPlaylists(true));on(elements.viewToggle,'click',()=>setView(elements.grid.dataset.layout==='list'?'grid':'list'));
   on(elements.playlistsClose,'click',()=>elements.playlistsDialog.close());on(elements.playlistForm,'submit',async event=>{event.preventDefault();try{await db.request('/api/manga/playlists',{method:'POST',body:JSON.stringify({name:elements.playlistName.value.trim()})});elements.playlistForm.reset();elements.playlistStatus.textContent='Lista criada.';loadPlaylists();}catch(error){elements.playlistStatus.textContent=error.message;}});
-  let expandedFallback=false;
-  function syncFullscreen(){const active=isReaderExpanded(doc.fullscreenElement,elements.readerDialog,expandedFallback);elements.readerFullscreen?.setAttribute('aria-pressed',String(active));if(elements.readerFullscreen)elements.readerFullscreen.innerHTML=`<i class="ph ph-corners-${active?'in':'out'}"></i>`;elements.readerDialog.classList.toggle('reader-expanded',expandedFallback);}
-  async function toggleFullscreen(){if(doc.fullscreenElement===elements.readerDialog){await doc.exitFullscreen();return;}if(expandedFallback){expandedFallback=false;syncFullscreen();return;}try{if(typeof elements.readerDialog.requestFullscreen!=='function')throw new Error('unsupported');await elements.readerDialog.requestFullscreen();}catch{expandedFallback=true;elements.readerStatus.textContent='Tela cheia não disponível neste navegador. O leitor foi expandido dentro da página.';syncFullscreen();}}
-  on(elements.readerClose,'click',async()=>{expandedFallback=false;if(doc.fullscreenElement===elements.readerDialog)try{await doc.exitFullscreen()}catch{}elements.readerDialog.close();syncFullscreen()});on(elements.readerFullscreen,'click',toggleFullscreen);doc.addEventListener('fullscreenchange',syncFullscreen);on(elements.readerPrevious,'click',()=>showPage(pageIndex-1));on(elements.readerNext,'click',()=>showPage(pageIndex+1));on(elements.readerPrevChapter,'click',()=>adjacentChapter(-1));on(elements.readerNextChapter,'click',()=>adjacentChapter(1));
-  on(elements.readerMode,'click',async()=>{readerMode=readerMode==='paged'?'continuous':'paged';if(readerMode==='continuous')renderContinuous();else{elements.readerContinuous.hidden=true;showPage(pageIndex)};await db.request('/api/account/preferences',{method:'PUT',body:JSON.stringify({catalogView:elements.grid.dataset.layout||'grid',readerMode})});});on(elements.zoomIn,'click',()=>setZoom(zoom+.2));on(elements.zoomOut,'click',()=>setZoom(zoom-.2));on(elements.zoomReset,'click',()=>{setZoom(1);elements.readerStage.scrollTo({top:0,left:0,behavior:reducedMotion?'instant':'smooth'})});
-  on(elements.readerStage,'click',event=>{if(zoom>1.01||readerMode!=='paged'||event.target!==elements.readerStage&&event.target!==elements.readerImage)return;const x=event.clientX/innerWidth;if(x<.3)showPage(pageIndex-1);else if(x>.7)showPage(pageIndex+1)});
-  on(elements.readerStage,'touchstart',event=>{if(event.touches.length===2){const [a,b]=event.touches;pinchStart={distance:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),zoom};touchStart=null;panStart=null;return;}if(event.touches.length===1){const touch=event.touches[0];touchStart=touch.clientX;if(zoom>1.01)panStart={x:touch.clientX,y:touch.clientY,left:elements.readerStage.scrollLeft,top:elements.readerStage.scrollTop};}},{passive:true});
-  on(elements.readerStage,'touchmove',event=>{if(event.touches.length===2&&pinchStart){event.preventDefault();const [a,b]=event.touches;setZoom(pinchStart.zoom*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/pinchStart.distance);return;}if(event.touches.length===1&&panStart){event.preventDefault();const touch=event.touches[0];elements.readerStage.scrollLeft=panStart.left-(touch.clientX-panStart.x);elements.readerStage.scrollTop=panStart.top-(touch.clientY-panStart.y);touchStart=null;}},{passive:false});
-  on(elements.readerStage,'touchend',event=>{if(pinchStart||panStart){if(event.touches.length<2)pinchStart=null;if(!event.touches.length)panStart=null;touchStart=null;return;}if(touchStart==null)return;const dx=event.changedTouches[0].clientX-touchStart;touchStart=null;if(Math.abs(dx)>60)(dx<0?showPage(pageIndex+1):showPage(pageIndex-1))},{passive:true});
+  createReaderFullscreen({
+    doc, dialog: elements.readerDialog,
+    target: elements.readerDialog.querySelector('.manga-reader-shell'),
+    button: elements.readerFullscreen, status: elements.readerStatus,
+    onResize: () => doc.defaultView.requestAnimationFrame(applyZoom)
+  });
+  on(elements.readerClose,'click',()=>elements.readerDialog.close());
+  on(elements.readerPrevious,'click',()=>showPage(pageIndex-1));on(elements.readerNext,'click',()=>showPage(pageIndex+1));on(elements.readerPrevChapter,'click',()=>adjacentChapter(-1));on(elements.readerNextChapter,'click',()=>adjacentChapter(1));
+  on(elements.readerMode,'click',async()=>{readerMode=readerMode==='paged'?'continuous':'paged';if(readerMode==='continuous')renderContinuous();else{continuousObserver?.disconnect();elements.readerContinuous.hidden=true;showPage(pageIndex)};elements.readerMode?.setAttribute('aria-pressed',String(readerMode==='continuous'));await db.request('/api/account/preferences',{method:'PUT',body:JSON.stringify({catalogView:elements.grid.dataset.layout||'grid',readerMode})});});on(elements.zoomIn,'click',()=>setZoom(zoom+.2));on(elements.zoomOut,'click',()=>setZoom(zoom-.2));on(elements.zoomReset,'click',()=>{setZoom(1);elements.readerStage.scrollTo({top:0,left:0,behavior:reducedMotion?'instant':'smooth'})});
+
+  on(elements.readerStage, 'click', event => {
+    if (Date.now() < suppressClickUntil || zoom > 1.01 || readerMode !== 'paged') return;
+    if (event.target !== elements.readerStage && event.target !== elements.readerImage) return;
+    const rect = elements.readerStage.getBoundingClientRect();
+    const x = event.clientX - rect.left, y = event.clientY - rect.top;
+    // Cliques nas barras nativas de rolagem não navegam entre páginas.
+    if (x >= elements.readerStage.clientWidth || y >= elements.readerStage.clientHeight) return;
+    if (x < rect.width * .3) showPage(pageIndex - 1);
+    else if (x > rect.width * .7) showPage(pageIndex + 1);
+  });
+  on(elements.readerStage, 'pointerdown', event => {
+    if (event.pointerType !== 'mouse' || event.button !== 0 || zoom <= 1.01 || event.target.tagName !== 'IMG') return;
+    event.preventDefault();
+    mousePan = { id: event.pointerId, x: event.clientX, y: event.clientY, left: elements.readerStage.scrollLeft, top: elements.readerStage.scrollTop };
+    elements.readerStage.setPointerCapture(event.pointerId);
+    elements.readerStage.dataset.panning = 'true';
+  });
+  on(elements.readerStage, 'pointermove', event => {
+    if (!mousePan || mousePan.id !== event.pointerId) return;
+    elements.readerStage.scrollLeft = mousePan.left - (event.clientX - mousePan.x);
+    elements.readerStage.scrollTop = mousePan.top - (event.clientY - mousePan.y);
+    suppressClickUntil = Date.now() + 400;
+  });
+  const endMousePan = () => {
+    mousePan = null;
+    delete elements.readerStage.dataset.panning;
+  };
+  on(elements.readerStage, 'pointerup', endMousePan);
+  on(elements.readerStage, 'pointercancel', endMousePan);
+  on(elements.readerStage, 'lostpointercapture', endMousePan);
+  on(elements.readerStage, 'dragstart', event => { if (event.target.tagName === 'IMG') event.preventDefault(); });
+  on(elements.readerStage, 'touchstart', event => {
+    if (event.target.tagName !== 'IMG') return;
+    if (event.touches.length === 2) {
+      const [a, b] = event.touches;
+      pinchStart = { distance: Math.max(1, Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)), zoom };
+      touchStart = panStart = null;
+      suppressClickUntil = Date.now() + 400;
+    } else if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      touchStart = { x: touch.clientX, y: touch.clientY };
+      panStart = { x: touch.clientX, y: touch.clientY, left: elements.readerStage.scrollLeft, top: elements.readerStage.scrollTop };
+    }
+  }, { passive: true });
+  on(elements.readerStage, 'touchmove', event => {
+    if (event.touches.length === 2 && pinchStart) {
+      event.preventDefault();
+      const [a, b] = event.touches;
+      setZoom(pinchStart.zoom * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinchStart.distance);
+    } else if (event.touches.length === 1 && panStart) {
+      event.preventDefault();
+      const touch = event.touches[0];
+      elements.readerStage.scrollLeft = panStart.left - (touch.clientX - panStart.x);
+      elements.readerStage.scrollTop = panStart.top - (touch.clientY - panStart.y);
+    }
+    if (pinchStart || panStart) suppressClickUntil = Date.now() + 400;
+  }, { passive: false });
+  on(elements.readerStage, 'touchend', event => {
+    if (pinchStart) {
+      if (event.touches.length < 2) pinchStart = null;
+      touchStart = panStart = null;
+      suppressClickUntil = Date.now() + 400;
+      return;
+    }
+    if (touchStart && !event.touches.length) {
+      const dx = event.changedTouches[0].clientX - touchStart.x;
+      const dy = event.changedTouches[0].clientY - touchStart.y;
+      if (readerMode === 'paged' && zoom <= 1.01 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        showPage(pageIndex + (dx < 0 ? 1 : -1));
+      }
+      if (Math.hypot(dx, dy) > 8) suppressClickUntil = Date.now() + 400;
+      touchStart = panStart = null;
+    }
+  }, { passive: true });
+  on(elements.readerStage, 'touchcancel', () => {
+    touchStart = pinchStart = panStart = null;
+    suppressClickUntil = Date.now() + 400;
+  });
   on(elements.commentForm,'submit',async event=>{event.preventDefault();try{await db.request(`/api/manga/comments/${provider}/${encodeURIComponent(currentSeriesId)}/${encodeURIComponent(currentBook.id)}`,{method:'POST',body:JSON.stringify({content:elements.commentText.value.trim()})});elements.commentForm.reset();loadComments();}catch(error){elements.commentsStatus.textContent=error.message;}});
-  doc.addEventListener('keydown',event=>{if(!elements.readerDialog.open)return;if(event.key==='Escape'&&expandedFallback){expandedFallback=false;syncFullscreen();return;}if(event.key==='0')setZoom(1);if(event.key==='+'||event.key==='=')setZoom(zoom+.2);if(event.key==='-')setZoom(zoom-.2);if(zoom<=1.01&&event.key==='ArrowLeft')showPage(pageIndex-1);if(zoom<=1.01&&event.key==='ArrowRight')showPage(pageIndex+1);if(event.key==='PageUp')adjacentChapter(-1);if(event.key==='PageDown')adjacentChapter(1)});
+
+  doc.addEventListener('keydown', event => {
+    if (!elements.readerDialog.open || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+    if (event.key === '0') setZoom(1);
+    else if (event.key === '+' || event.key === '=') setZoom(zoom + .2);
+    else if (event.key === '-') setZoom(zoom - .2);
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const direction = event.key === 'ArrowLeft' ? -1 : 1;
+      if (zoom > 1.01) elements.readerStage.scrollBy({ left: direction * 120 });
+      else if (readerMode === 'paged') showPage(pageIndex + direction);
+      else return;
+    } else if (event.key === 'PageUp') adjacentChapter(-1);
+    else if (event.key === 'PageDown') adjacentChapter(1);
+    else return;
+    event.preventDefault();
+  });
   on(window,'resize',applyZoom);
   elements.grid.dataset.layout=user.catalogView==='list'?'list':'grid';loadPlaylists().catch(()=>{});
   return { load, openBook, useProvider(value){provider=value==='komga'?'komga':'mangadex'}, loadPlaylists };
@@ -1190,4 +1358,4 @@ if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp, { once: true });
   else startApp();
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = { ApiDB, createAudioPlayer, createVideoViewer, createMetadataCatalog, createOnlineCatalog, createMangaCatalog: createMangaExperience, createMangaDetail: createMangaDetailV2, createLibraryFeatures, recentMangaItems, clampReaderZoom, isReaderExpanded };
+if (typeof module !== 'undefined' && module.exports) module.exports = { ApiDB, createAudioPlayer, createVideoViewer, createMetadataCatalog, createOnlineCatalog, createMangaCatalog: createMangaExperience, createMangaDetail: createMangaDetailV2, createLibraryFeatures, recentMangaItems, clampReaderZoom, isReaderExpanded, createReaderFullscreen };
