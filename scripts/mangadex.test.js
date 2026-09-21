@@ -50,7 +50,7 @@ test('rejects external page servers and upstream rate limits', async () => {
   await assert.rejects(offline.listSeries(), { status: 503 });
 });
 test('HTTP integration requires session and supports catalog, chapters, images and method validation', async t => {
-  const server = createServer({ databasePath: ':memory:', mangadexOptions: { fetchImpl: fakeFetch } });
+  const server = createServer({ databasePath: ':memory:', databaseOptions: { env: { NEXUS_ADMIN_PASSWORD: 'admin', NEXUS_SEED_DEMO: '1' }, logger: { warn() {} } }, mangadexOptions: { fetchImpl: fakeFetch } });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
   const base = `http://127.0.0.1:${server.address().port}`;

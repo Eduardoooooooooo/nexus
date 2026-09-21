@@ -11,16 +11,16 @@ npm start
 Abra http://localhost:3000. O login e a tabela agora dependem do servidor Node.js;
 o Live Server sozinho não fornece a API.
 
-## Banco e acessos iniciais
+## Banco e acesso inicial
 
 O arquivo `data/nexus.sqlite` é criado automaticamente na primeira inicialização.
-Não é necessário criar a tabela manualmente. Contas iniciais:
+Não é necessário criar a tabela manualmente. Antes da primeira execução, defina
+`NEXUS_ADMIN_PASSWORD` no `.env`. Se a variável estiver vazia, o servidor gera uma
+senha aleatória forte e a mostra uma única vez no terminal.
 
-| Usuário | Senha | Acesso |
-| --- | --- | --- |
-| admin | admin | Administrador |
-| user | 123 | Usuário Premium |
-| visitante | abc | Conta inativa |
+Por padrão, somente a conta `admin` é criada. Para um ambiente descartável de
+demonstração, `NEXUS_SEED_DEMO=1` também cria `user` e `visitante`; não use essa
+opção em uma instalação real.
 
 Essas contas são criadas apenas na primeira inicialização. Cadastros, alterações
 e exclusões permanecem no arquivo após reiniciar. A sessão de login dura até oito
@@ -29,6 +29,8 @@ horas e é encerrada ao reiniciar o servidor. Faça login novamente nesse caso.
 Os dados da antiga simulação em sessionStorage não são importados automaticamente.
 
 As senhas são salvas como hash com salt; a API não devolve senhas nem hashes.
+Ao abrir um banco existente, o servidor avisa no terminal se detectar alguma das
+credenciais antigas conhecidas, para que o administrador possa substituí-las.
 Na edição, deixe a senha vazia para manter a atual. Somente o administrador pode
 listar, criar, editar e remover usuários. O administrador principal fica protegido
 contra alteração por essa tela. Desativar/remover um usuário ou trocar sua senha

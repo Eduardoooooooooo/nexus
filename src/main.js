@@ -1191,5 +1191,3 @@ if (typeof document !== 'undefined') {
   else startApp();
 }
 if (typeof module !== 'undefined' && module.exports) module.exports = { ApiDB, createAudioPlayer, createVideoViewer, createMetadataCatalog, createOnlineCatalog, createMangaCatalog: createMangaExperience, createMangaDetail: createMangaDetailV2, createLibraryFeatures, recentMangaItems, clampReaderZoom, isReaderExpanded };
-
-\n

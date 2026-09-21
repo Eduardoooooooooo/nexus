@@ -44,3 +44,6 @@ Os caminhos citados na documentação são relativos à raiz do projeto.
 - [Catálogo e leitura com MangaDex](docs/MANGADEX.md)
 - [Dados complementares de mangás com Jikan](docs/JIKAN.md)
 - [Biblioteca, leitor e controle de conteúdo](docs/MANGA-LIBRARY.md)
+
+O perfil do usuário está disponível em `/perfil`. A página de mangás inclui destaques
+recentes e o leitor oferece zoom por controles, teclado e gesto de pinça.

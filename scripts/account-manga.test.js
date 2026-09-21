@@ -10,14 +10,20 @@ async function session(base, username, password) {
 }
 
 test('persists manga library, progress, profile, comments and suggestions per account', async t => {
-  const server=createServer({databasePath:':memory:'});
+  const server=createServer({databasePath:':memory:',databaseOptions:{env:{NEXUS_ADMIN_PASSWORD:'admin',NEXUS_SEED_DEMO:'1'},logger:{warn(){}}}});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections()}));
   const base=`http://127.0.0.1:${server.address().port}`, cookie=await session(base,'user','123');
   const call=(path,method='GET',body,c=cookie)=>fetch(base+path,{method,headers:{cookie:c,...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});
 
-  let response=await call('/api/account/profile','PUT',{displayName:'Leitor',bio:'Mangás',interests:['Ação'],avatar:'',profilePublic:true,interestsPublic:true});
-  assert.equal((await response.json()).user.displayName,'Leitor');
+  const avatar='data:image/png;base64,iVBORw0KGgo=';
+  let response=await call('/api/account/profile','PUT',{displayName:'Leitor',bio:'Mangás',interests:['Ação'],avatar,profilePublic:true,interestsPublic:true});
+  const savedProfile=await response.json();assert.equal(savedProfile.user.displayName,'Leitor');assert.ok(savedProfile.user.createdAt);
+  assert.equal((await (await call('/api/account/profile')).json()).user.bio,'Mangás');
+  const relogged=await session(base,'user','123');
+  const persisted=(await (await call('/api/account/profile','GET',undefined,relogged)).json()).user;
+  assert.equal(persisted.displayName,'Leitor');assert.equal(persisted.bio,'Mangás');assert.equal(persisted.avatar,avatar);
+  response=await fetch(base+'/perfil',{headers:{cookie:relogged}});assert.equal(response.status,200);assert.match(await response.text(),/profile-view/);
   response=await call('/api/account/age','POST',{adult:true}); assert.equal(response.status,200);
   response=await call('/api/account/content-pin','POST',{pin:'1234'}); assert.equal((await response.json()).user.explicitEnabled,true);
 
@@ -38,7 +44,7 @@ test('persists manga library, progress, profile, comments and suggestions per ac
 });
 
 test('content PIN rate limit locks repeated invalid attempts', async t => {
-  const server=createServer({databasePath:':memory:'});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const server=createServer({databasePath:':memory:',databaseOptions:{env:{NEXUS_ADMIN_PASSWORD:'admin',NEXUS_SEED_DEMO:'1'},logger:{warn(){}}}});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections()}));
   const base=`http://127.0.0.1:${server.address().port}`,cookie=await session(base,'user','123');
   const post=(path,body)=>fetch(base+path,{method:'POST',headers:{cookie,'content-type':'application/json'},body:JSON.stringify(body)});

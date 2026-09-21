@@ -29,21 +29,29 @@ function publicUser(user) {
     displayName: user.display_name || user.username, bio: user.bio || '', interests: parseInterests(user.interests),
     avatar: user.avatar_data || '', profilePublic: Boolean(user.profile_public), interestsPublic: Boolean(user.interests_public),
     ageGroup: user.age_group || 'unknown', explicitEnabled: Boolean(user.explicit_enabled), contentPinSet: Boolean(user.explicit_pin_hash),
-    catalogView: user.catalog_view || 'grid', readerMode: user.reader_mode || 'paged'
+    catalogView: user.catalog_view || 'grid', readerMode: user.reader_mode || 'paged', createdAt: user.created_at || null
   };
 }
 
-function openDatabase(filename = path.join(__dirname, '..', '..', 'data', 'nexus.sqlite')) {
+function openDatabase(filename = path.join(__dirname, '..', '..', 'data', 'nexus.sqlite'), { env = process.env, logger = console } = {}) {
   if (filename !== ':memory:') mkdirSync(path.dirname(filename), { recursive: true });
   const connection = new DatabaseSync(filename, { timeout: 5000 });
   connection.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;');
   try {
     connection.exec('BEGIN IMMEDIATE');
     let version = connection.prepare('PRAGMA user_version').get().user_version;
+    const existingDatabase = version > 0;
     if (version === 0) {
       connection.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('user','admin')), plan TEXT NOT NULL CHECK(plan IN ('Basic','Premium','Infinite')), status TEXT NOT NULL CHECK(status IN ('Ativo','Inativo')))`);
       const insert = connection.prepare('INSERT INTO users(username,password_hash,role,plan,status) VALUES(?,?,?,?,?)');
-      for (const row of [['admin','admin','admin','Infinite','Ativo'],['user','123','user','Premium','Ativo'],['visitante','abc','user','Basic','Inativo']]) insert.run(row[0],hashPassword(row[1]),row[2],row[3],row[4]);
+      const configuredPassword = String(env.NEXUS_ADMIN_PASSWORD || '');
+      const adminPassword = configuredPassword || randomBytes(24).toString('base64url');
+      insert.run('admin',hashPassword(adminPassword),'admin','Infinite','Ativo');
+      if (!configuredPassword) logger.warn(`NEXUS: senha inicial do administrador: ${adminPassword}\nGuarde-a agora; ela não será exibida novamente.`);
+      if (String(env.NEXUS_SEED_DEMO || '') === '1') {
+        insert.run('user',hashPassword('123'),'user','Premium','Ativo');
+        insert.run('visitante',hashPassword('abc'),'user','Basic','Inativo');
+      }
       connection.exec('PRAGMA user_version=1'); version = 1;
     }
     if (version === 1) {
@@ -69,6 +77,15 @@ function openDatabase(filename = path.join(__dirname, '..', '..', 'data', 'nexus
       connection.exec('PRAGMA user_version=2');
     }
     connection.exec('COMMIT');
+    if (existingDatabase) {
+      const defaults = [['admin','admin'],['user','123'],['visitante','abc']];
+      const lookup = connection.prepare('SELECT password_hash FROM users WHERE username=?');
+      const insecure = defaults.filter(([username,password]) => {
+        const row = lookup.get(username);
+        return row && verifyPassword(password,row.password_hash);
+      }).map(([username]) => username);
+      if (insecure.length) logger.warn(`NEXUS: atenção — contas com senha padrão detectadas: ${insecure.join(', ')}. Altere essas senhas no painel administrativo.`);
+    }
   } catch (error) { try { connection.exec('ROLLBACK'); } catch {} connection.close(); throw error; }
 
   const byUsername = connection.prepare('SELECT * FROM users WHERE username=?');

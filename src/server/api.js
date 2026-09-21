@@ -47,12 +47,12 @@ function userFields(body, editing = false) {
   return { username, password, plan: body.plan, status: body.status };
 }
 
-function createApi({ databasePath, metadataOptions, mangadexOptions, jikanOptions } = {}) {
+function createApi({ databasePath, databaseOptions, metadataOptions, mangadexOptions, jikanOptions } = {}) {
   const musicMetadata = createMusicMetadata(metadataOptions);
   const komga = createKomga();
   const mangadex = createMangaDex(mangadexOptions);
   const jikan = createJikan(jikanOptions);
-  const db = openDatabase(databasePath);
+  const db = openDatabase(databasePath, databaseOptions);
   const sessions = new Map();
   function tokenFrom(request) {
     return (request.headers.cookie || '').split(';').map(value => value.trim()).find(value => value.startsWith(COOKIE + '='))?.slice(COOKIE.length + 1);
