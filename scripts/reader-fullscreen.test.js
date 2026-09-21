@@ -45,7 +45,7 @@ test('unavailable fullscreen expands the reader and Escape restores it without c
     const f = fixture(mode);
     await f.toggle();
     assert.ok(f.classes.has('reader-expanded'));
-    assert.match(f.status.textContent, /indispon/);
+    assert.match(f.status.textContent, /tela cheia|indisponível/i);
     const cancel = new Event('cancel', { cancelable: true });
     f.dialog.dispatchEvent(cancel);
     assert.equal(cancel.defaultPrevented, true);

@@ -695,7 +695,15 @@ function isReaderExpanded(fullscreenElement, readerDialog, expandedFallback = fa
 function createReaderFullscreen({ doc, dialog, target, button, status, onResize = () => {} }) {
   let fallback = false;
   let busy = false;
-  const fallbackMessage = 'Tela cheia indisponível. O leitor foi expandido dentro da página.';
+  function fallbackReason(error) {
+    if (!target?.requestFullscreen || doc.fullscreenEnabled === false)
+      return 'Este navegador não permite tela cheia neste contexto. O leitor foi expandido dentro da página.';
+    if (error?.name === 'NotAllowedError')
+      return 'O navegador bloqueou a tela cheia. Clique novamente no botão ou abra a página diretamente.';
+    if (error?.name === 'TypeError')
+      return 'A tela cheia foi bloqueada pela página incorporada. Abra o leitor diretamente no endereço do site.';
+    return 'Não foi possível ativar a tela cheia. O leitor foi expandido dentro da página.';
+  }
 
   function sync() {
     const active = isReaderExpanded(doc.fullscreenElement, target, fallback);
@@ -716,15 +724,15 @@ function createReaderFullscreen({ doc, dialog, target, button, status, onResize 
         await doc.exitFullscreen();
       } else if (fallback) {
         fallback = false;
-        if (status.textContent === fallbackMessage) status.textContent = '';
+        if (status.textContent.includes('tela cheia') || status.textContent.includes('Tela cheia')) status.textContent = '';
       } else {
         try {
-          if (!target?.requestFullscreen) throw new Error('unsupported');
-          await target.requestFullscreen();
-        } catch {
+          if (doc.fullscreenEnabled === false || !target?.requestFullscreen) throw Object.assign(new Error('unsupported'), { name: 'NotSupportedError' });
+          await target.requestFullscreen({ navigationUI: 'hide' });
+        } catch (error) {
           if (dialog.open) {
             fallback = true;
-            status.textContent = fallbackMessage;
+            status.textContent = fallbackReason(error);
           }
         }
       }
@@ -745,13 +753,19 @@ function createReaderFullscreen({ doc, dialog, target, button, status, onResize 
   });
   dialog.addEventListener('close', () => {
     fallback = false;
-    if (status.textContent === fallbackMessage) status.textContent = '';
+    if (status.textContent.includes('tela cheia') || status.textContent.includes('Tela cheia')) status.textContent = '';
     if (doc.fullscreenElement === target) {
       doc.exitFullscreen().catch(() => {}).finally(sync);
     }
     sync();
   });
   doc.addEventListener('fullscreenchange', sync);
+  target?.addEventListener?.('fullscreenerror', event => {
+    if (!dialog.open || busy) return;
+    fallback = true;
+    status.textContent = fallbackReason(event);
+    sync();
+  });
   button.addEventListener('click', toggle);
   sync();
   return { toggle };
@@ -913,52 +927,63 @@ function createMangaExperience({ db, elements, document: doc, user, notify = () 
   on(elements.readerStage, 'pointercancel', endMousePan);
   on(elements.readerStage, 'lostpointercapture', endMousePan);
   on(elements.readerStage, 'dragstart', event => { if (event.target.tagName === 'IMG') event.preventDefault(); });
-  on(elements.readerStage, 'touchstart', event => {
-    if (event.target.tagName !== 'IMG') return;
-    if (event.touches.length === 2) {
-      const [a, b] = event.touches;
-      pinchStart = { distance: Math.max(1, Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)), zoom };
+  const activePointers = new Map();
+  on(elements.readerStage, 'pointerdown', event => {
+    if (event.pointerType !== 'touch' || event.target.tagName !== 'IMG') return;
+    activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    elements.readerStage.setPointerCapture?.(event.pointerId);
+    if (activePointers.size >= 2) {
+      const [a, b] = [...activePointers.values()];
+      pinchStart = { distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), zoom };
       touchStart = panStart = null;
       suppressClickUntil = Date.now() + 400;
-    } else if (event.touches.length === 1) {
-      const touch = event.touches[0];
-      touchStart = { x: touch.clientX, y: touch.clientY };
-      panStart = { x: touch.clientX, y: touch.clientY, left: elements.readerStage.scrollLeft, top: elements.readerStage.scrollTop };
+    } else {
+      touchStart = { x: event.clientX, y: event.clientY };
+      panStart = zoom > 1.01
+        ? { x: event.clientX, y: event.clientY, left: elements.readerStage.scrollLeft, top: elements.readerStage.scrollTop }
+        : null;
     }
-  }, { passive: true });
-  on(elements.readerStage, 'touchmove', event => {
-    if (event.touches.length === 2 && pinchStart) {
+  });
+  on(elements.readerStage, 'pointermove', event => {
+    if (event.pointerType !== 'touch' || !activePointers.has(event.pointerId)) return;
+    activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (activePointers.size >= 2 && pinchStart) {
       event.preventDefault();
-      const [a, b] = event.touches;
-      setZoom(pinchStart.zoom * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinchStart.distance);
-    } else if (event.touches.length === 1 && panStart) {
+      const [a, b] = [...activePointers.values()];
+      setZoom(pinchStart.zoom * Math.hypot(a.x - b.x, a.y - b.y) / pinchStart.distance);
+    } else if (activePointers.size === 1 && panStart && zoom > 1.01) {
       event.preventDefault();
-      const touch = event.touches[0];
-      elements.readerStage.scrollLeft = panStart.left - (touch.clientX - panStart.x);
-      elements.readerStage.scrollTop = panStart.top - (touch.clientY - panStart.y);
+      elements.readerStage.scrollLeft = panStart.left - (event.clientX - panStart.x);
+      elements.readerStage.scrollTop = panStart.top - (event.clientY - panStart.y);
     }
     if (pinchStart || panStart) suppressClickUntil = Date.now() + 400;
-  }, { passive: false });
-  on(elements.readerStage, 'touchend', event => {
-    if (pinchStart) {
-      if (event.touches.length < 2) pinchStart = null;
+  });
+  const finishTouchPointer = event => {
+    if (event.pointerType !== 'touch') return;
+    const start = touchStart;
+    activePointers.delete(event.pointerId);
+    if (pinchStart || activePointers.size > 0) {
+      pinchStart = null;
       touchStart = panStart = null;
       suppressClickUntil = Date.now() + 400;
       return;
     }
-    if (touchStart && !event.touches.length) {
-      const dx = event.changedTouches[0].clientX - touchStart.x;
-      const dy = event.changedTouches[0].clientY - touchStart.y;
-      if (readerMode === 'paged' && zoom <= 1.01 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    if (start) {
+      const dx = event.clientX - start.x, dy = event.clientY - start.y;
+      if (readerMode === 'paged' && zoom <= 1.01 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5)
         showPage(pageIndex + (dx < 0 ? 1 : -1));
-      }
       if (Math.hypot(dx, dy) > 8) suppressClickUntil = Date.now() + 400;
-      touchStart = panStart = null;
     }
-  }, { passive: true });
-  on(elements.readerStage, 'touchcancel', () => {
-    touchStart = pinchStart = panStart = null;
-    suppressClickUntil = Date.now() + 400;
+    touchStart = panStart = null;
+  };
+  on(elements.readerStage, 'pointerup', finishTouchPointer);
+  on(elements.readerStage, 'pointercancel', finishTouchPointer);
+  on(elements.readerStage, 'lostpointercapture', event => {
+    if (event.pointerType === 'touch') {
+      activePointers.delete(event.pointerId);
+      touchStart = pinchStart = panStart = null;
+      suppressClickUntil = Date.now() + 400;
+    }
   });
   on(elements.commentForm,'submit',async event=>{event.preventDefault();try{await db.request(`/api/manga/comments/${provider}/${encodeURIComponent(currentSeriesId)}/${encodeURIComponent(currentBook.id)}`,{method:'POST',body:JSON.stringify({content:elements.commentText.value.trim()})});elements.commentForm.reset();loadComments();}catch(error){elements.commentsStatus.textContent=error.message;}});
 
